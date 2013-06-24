@@ -13,10 +13,10 @@
 //	$ make generic
 //
 // Performing it will write to stdout a version of the btree.go file where
-// every key type occurrence is replaced by the word KEY and every value type
-// occurrence is replaced by the word VALUE. In both cases as seen here, ie.
-// all upper case letters.  Then you have to replace the strings {KEY,VALUE}
-// with your desired type(s), using any technique you're comfortable with.
+// every key type occurrence is replaced by the word 'key' (written in all
+// CAPS) and every value type occurrence is replaced by the word 'value'
+// (written in all CAPS). Then you have to replace theses strings with your
+// desired type(s), using any technique you're comfortable with.
 package b
 
 import (
@@ -26,8 +26,8 @@ import (
 //TODO check vs orig initialize/finalize
 
 const (
-	kx = 128 //TODO benchmark tune this number if key type is not interface{}
-	kd = 64  //TODO benchmark tune this number if value type is not interface{}
+	kx = 128 //TODO benchmark tune this number if using custom key/value type(s).
+	kd = 64  //TODO benchmark tune this number if using custom key/value type(s).
 )
 
 type (
@@ -473,7 +473,6 @@ func (t *Tree) SeekLast() (e *Enumerator, err error) {
 
 // Set sets the value associated with k.
 func (t *Tree) Set(k interface{} /*K*/, v interface{} /*V*/) {
-	t.ver++
 	pi := -1
 	var p *x
 	q := t.r
@@ -505,6 +504,7 @@ func (t *Tree) Set(k interface{} /*K*/, v interface{} /*V*/) {
 				default:
 					t.overflow(p, x, pi, i, k, v)
 				}
+				t.ver++
 				return
 			}
 		}

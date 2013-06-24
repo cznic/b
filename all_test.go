@@ -512,7 +512,7 @@ func BenchmarkDelRnd(b *testing.B) {
 }
 
 func TestDelete2(t *testing.T) {
-	const N = 100000
+	const N = 80000
 	for _, x := range []int{0, -1, 0x55555555, 0xaaaaaaaa, 314159265} {
 		r := TreeNew(cmp)
 		set := r.Set
@@ -563,7 +563,7 @@ func TestEnumeratorNext(t *testing.T) {
 		r.Set(30, 300)
 
 		for verChange := 0; verChange < 16; verChange++ {
-			t.Logf("Seek %d", test.k)
+			//t.Logf("Seek %d", test.k)
 			en, hit := r.Seek(test.k)
 
 			if g, e := hit, test.hit; g != e {
@@ -573,7 +573,7 @@ func TestEnumeratorNext(t *testing.T) {
 			j := 0
 			for {
 				if verChange&(1<<uint(j)) != 0 {
-					t.Log("version change")
+					//t.Log("version change")
 					r.Set(20, 200)
 				}
 
@@ -586,7 +586,7 @@ func TestEnumeratorNext(t *testing.T) {
 					break
 				}
 
-				t.Logf("Next -> %v: %v", k, v)
+				//t.Logf("Next -> %v: %v", k, v)
 				if j >= len(up) {
 					t.Fatal(i, j, verChange)
 				}
@@ -636,7 +636,7 @@ func TestEnumeratorPrev(t *testing.T) {
 		r.Set(30, 300)
 
 		for verChange := 0; verChange < 16; verChange++ {
-			t.Logf("Seek %d", test.k)
+			//t.Logf("Seek %d", test.k)
 			en, hit := r.Seek(test.k)
 
 			if g, e := hit, test.hit; g != e {
@@ -646,7 +646,7 @@ func TestEnumeratorPrev(t *testing.T) {
 			j := 0
 			for {
 				if verChange&(1<<uint(j)) != 0 {
-					t.Log("version change")
+					//t.Log("version change")
 					r.Set(20, 200)
 				}
 
@@ -659,7 +659,7 @@ func TestEnumeratorPrev(t *testing.T) {
 					break
 				}
 
-				t.Logf("Prev -> %v: %v", k, v)
+				//t.Logf("Prev -> %v: %v", k, v)
 				if j >= len(dn) {
 					t.Fatal(i, j, verChange)
 				}
