@@ -449,6 +449,28 @@ func (t *Tree) Seek(k interface{} /*K*/) (e *Enumerator, ok bool) {
 	}
 }
 
+// SeekFirst returns an enumerator positioned on the first KV pair in the tree,
+// if any. For an empty tree, err == io.EOF is returned and e will be nil.
+func (t *Tree) SeekFirst() (e *Enumerator, err error) {
+	q := t.first
+	if q == nil {
+		return nil, io.EOF
+	}
+
+	return &Enumerator{nil, true, 0, q.d[0].k, q, t, t.ver}, nil
+}
+
+// SeekLast returns an enumerator positioned on the last KV pair in the tree,
+// if any. For an empty tree, err == io.EOF is returned and e will be nil.
+func (t *Tree) SeekLast() (e *Enumerator, err error) {
+	q := t.last
+	if q == nil {
+		return nil, io.EOF
+	}
+
+	return &Enumerator{nil, true, q.c - 1, q.d[q.c-1].k, q, t, t.ver}, nil
+}
+
 // Set sets the value associated with k.
 func (t *Tree) Set(k interface{} /*K*/, v interface{} /*V*/) {
 	t.ver++
