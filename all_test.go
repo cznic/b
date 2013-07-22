@@ -203,7 +203,7 @@ func TestSetGet0(t *testing.T) {
 
 func TestSetGet1(t *testing.T) {
 	const N = 90000
-	for _, x := range []int{0, -1, 0x55555555, int(0xaaaaaaaa), 314159265} {
+	for _, x := range []int{0, -1, 0x55555555, 0xaaaaaaa, 314159265} {
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
@@ -299,7 +299,7 @@ func BenchmarkGetRnd(b *testing.B) {
 
 func TestSetGet2(t *testing.T) {
 	const N = 70000
-	for _, x := range []int{0, -1, 0x55555555, int(0xaaaaaaaa), 314159265} {
+	for _, x := range []int{0, -1, 0x55555555, 0xaaaaaaa, 314159265} {
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
@@ -458,7 +458,7 @@ func TestDelete0(t *testing.T) {
 
 func TestDelete1(t *testing.T) {
 	const N = 100000
-	for _, x := range []int{0, -1, 0x55555555, int(0xaaaaaaaa), 314159265} {
+	for _, x := range []int{0, -1, 0x55555555, 0xaaaaaaa, 314159265} {
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
@@ -513,7 +513,7 @@ func BenchmarkDelRnd(b *testing.B) {
 
 func TestDelete2(t *testing.T) {
 	const N = 80000
-	for _, x := range []int{0, -1, 0x55555555, int(0xaaaaaaaa), 314159265} {
+	for _, x := range []int{0, -1, 0x55555555, 0xaaaaaaa, 314159265} {
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
