@@ -117,7 +117,7 @@ func (t *Tree) dump() string {
 }
 
 func rng() *mathutil.FC32 {
-	x, err := mathutil.NewFC32(math.MinInt32, math.MaxInt32, false)
+	x, err := mathutil.NewFC32(math.MinInt32/4, math.MaxInt32/4, false)
 	if err != nil {
 		panic(err)
 	}
