@@ -32,9 +32,6 @@ var caller = func(s string, va ...interface{}) {
 	fmt.Println()
 }
 
-var aaa0 = int64(0xaaaaaaaa)
-var aaa = int(aaa0)
-
 func isNil(p interface{}) bool {
 	switch x := p.(type) {
 	case *x:
@@ -206,7 +203,7 @@ func TestSetGet0(t *testing.T) {
 
 func TestSetGet1(t *testing.T) {
 	const N = 90000
-	for _, x := range []int{0, -1, 0x55555555, aaa, 314159265} {
+	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
@@ -302,7 +299,7 @@ func BenchmarkGetRnd(b *testing.B) {
 
 func TestSetGet2(t *testing.T) {
 	const N = 70000
-	for _, x := range []int{0, -1, 0x55555555, aaa, 314159265} {
+	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
@@ -461,7 +458,7 @@ func TestDelete0(t *testing.T) {
 
 func TestDelete1(t *testing.T) {
 	const N = 100000
-	for _, x := range []int{0, -1, 0x55555555, aaa, 314159265} {
+	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
@@ -516,7 +513,7 @@ func BenchmarkDelRnd(b *testing.B) {
 
 func TestDelete2(t *testing.T) {
 	const N = 80000
-	for _, x := range []int{0, -1, 0x55555555, aaa, 314159265} {
+	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
