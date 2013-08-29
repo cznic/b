@@ -6,13 +6,13 @@ package b
 
 import (
 	"fmt"
-	"io"
 	"math"
 	"path"
 	"runtime"
 	"runtime/debug"
 	"testing"
 
+	"github.com/cznic/fileutil"
 	"github.com/cznic/mathutil"
 )
 
@@ -579,7 +579,7 @@ func TestEnumeratorNext(t *testing.T) {
 
 				k, v, err := en.Next()
 				if err != nil {
-					if err != io.EOF {
+					if !fileutil.IsEOF(err) {
 						t.Fatal(i, err)
 					}
 
@@ -652,7 +652,7 @@ func TestEnumeratorPrev(t *testing.T) {
 
 				k, v, err := en.Prev()
 				if err != nil {
-					if err != io.EOF {
+					if !fileutil.IsEOF(err) {
 						t.Fatal(i, err)
 					}
 
