@@ -230,6 +230,7 @@ func (t *Tree) Clear() {
 }
 
 func (t *Tree) cat(p *x, q, r *d, pi int) {
+	t.ver++
 	q.mvL(r, r.c)
 	if r.n != nil {
 		r.n.p = q
@@ -246,6 +247,7 @@ func (t *Tree) cat(p *x, q, r *d, pi int) {
 }
 
 func (t *Tree) catX(p, q, r *x, pi int) {
+	t.ver++
 	q.x[q.c].sep = p.x[pi].sep
 	copy(q.x[q.c+1:], r.x[:r.c])
 	q.c += r.c + 1
@@ -298,7 +300,6 @@ func (t *Tree) Delete(k interface{} /*K*/) (ok bool) {
 				}
 			case *d:
 				t.extract(x, i)
-				t.ver++
 				if x.c >= kd {
 					return
 				}
@@ -327,6 +328,7 @@ func (t *Tree) Delete(k interface{} /*K*/) (ok bool) {
 }
 
 func (t *Tree) extract(q *d, i int) { // (r interface{} /*V*/) {
+	t.ver++
 	//r = q.d[i].v // prepared for Extract
 	q.c--
 	if i < q.c {
@@ -411,6 +413,7 @@ func (t *Tree) Get(k interface{} /*K*/) (v interface{} /*V*/, ok bool) {
 }
 
 func (t *Tree) insert(q *d, i int, k interface{} /*K*/, v interface{} /*V*/) *d {
+	t.ver++
 	c := q.c
 	if i < c {
 		copy(q.d[i+1:], q.d[i:c])
@@ -438,6 +441,7 @@ func (t *Tree) Len() int {
 }
 
 func (t *Tree) overflow(p *x, q *d, pi, i int, k interface{} /*K*/, v interface{} /*V*/) {
+	t.ver++
 	l, r := p.siblings(pi)
 
 	if l != nil && l.c < 2*kd {
@@ -546,7 +550,6 @@ func (t *Tree) Set(k interface{} /*K*/, v interface{} /*V*/) {
 				default:
 					t.overflow(p, x, pi, i, k, v)
 				}
-				t.ver++
 				return
 			}
 		}
@@ -558,6 +561,7 @@ func (t *Tree) Set(k interface{} /*K*/, v interface{} /*V*/) {
 }
 
 func (t *Tree) split(p *x, q *d, pi, i int, k interface{} /*K*/, v interface{} /*V*/) {
+	t.ver++
 	r := &d{}
 	if q.n != nil {
 		r.n = q.n
@@ -588,6 +592,7 @@ func (t *Tree) split(p *x, q *d, pi, i int, k interface{} /*K*/, v interface{} /
 }
 
 func (t *Tree) splitX(p *x, pp **x, pi int, i *int) {
+	t.ver++
 	q := *pp
 	r := &x{}
 	copy(r.x[:], q.x[kx+1:])
@@ -609,6 +614,7 @@ func (t *Tree) splitX(p *x, pp **x, pi int, i *int) {
 }
 
 func (t *Tree) underflow(p *x, q *d, pi int) {
+	t.ver++
 	l, r := p.siblings(pi)
 
 	if l != nil && l.c+q.c >= 2*kd {
@@ -624,6 +630,7 @@ func (t *Tree) underflow(p *x, q *d, pi int) {
 }
 
 func (t *Tree) underflowX(p *x, pp **x, pi int, i *int) {
+	t.ver++
 	var l, r *x
 	q := *pp
 

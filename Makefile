@@ -1,11 +1,15 @@
-all:
-	go fmt
-	go test -i
-	go test
+.PHONY: all todo clean cover generic
+
+all: editor
 	go build
 	go vet
 	go install
 	make todo
+
+editor:
+	go fmt
+	go test -i
+	go test
 
 todo:
 	@grep -n ^[[:space:]]*_[[:space:]]*=[[:space:]][[:alpha:]][[:alnum:]]* *.go || true
@@ -15,10 +19,10 @@ todo:
 
 clean:
 	@go clean
-	rm -f *~ cov cov.html
+	rm -f *~
 
-gocov:
-	gocov test $(COV) | gocov-html > cov.html
+cover:
+	t=$(shell tempfile) ; go test -coverprofile $$t && go tool cover -html $$t && unlink $$t
 
 generic:
 	@# writes to stdout a version where the type of key is KEY and the type

@@ -21,7 +21,7 @@
 // This is how, for example, 'example/int.go' was created:
 //
 //	$ mkdir example
-//	$ make generic | sed -e 's/int/int/g' -e 's/int/int/g' > example/int.go
+//	$ make generic | sed -e 's/key/int/g' -e 's/value/int/g' > example/int.go
 //
 package b
 
@@ -39,9 +39,10 @@ const (
 type (
 	// Cmp compares a and b. Return value is:
 	//
-	//	-1 if a <  b
-	//	 0 if a == b
-	//	+1 if a >  b
+	//	< 0 if a <  b
+	//	  0 if a == b
+	//	> 0 if a >  b
+	//
 	Cmp func(a, b int) int
 
 	d struct { // data page
@@ -194,6 +195,7 @@ func (t *Tree) Clear() {
 }
 
 func (t *Tree) cat(p *x, q, r *d, pi int) {
+	t.ver++
 	q.mvL(r, r.c)
 	if r.n != nil {
 		r.n.p = q
@@ -210,6 +212,7 @@ func (t *Tree) cat(p *x, q, r *d, pi int) {
 }
 
 func (t *Tree) catX(p, q, r *x, pi int) {
+	t.ver++
 	q.x[q.c].sep = p.x[pi].sep
 	copy(q.x[q.c+1:], r.x[:r.c])
 	q.c += r.c + 1
@@ -262,7 +265,6 @@ func (t *Tree) Delete(k int) (ok bool) {
 				}
 			case *d:
 				t.extract(x, i)
-				t.ver++
 				if x.c >= kd {
 					return
 				}
@@ -291,6 +293,7 @@ func (t *Tree) Delete(k int) (ok bool) {
 }
 
 func (t *Tree) extract(q *d, i int) { // (r int) {
+	t.ver++
 	//r = q.d[i].v // prepared for Extract
 	q.c--
 	if i < q.c {
@@ -375,6 +378,7 @@ func (t *Tree) Get(k int) (v int, ok bool) {
 }
 
 func (t *Tree) insert(q *d, i int, k int, v int) *d {
+	t.ver++
 	c := q.c
 	if i < c {
 		copy(q.d[i+1:], q.d[i:c])
@@ -402,6 +406,7 @@ func (t *Tree) Len() int {
 }
 
 func (t *Tree) overflow(p *x, q *d, pi, i int, k int, v int) {
+	t.ver++
 	l, r := p.siblings(pi)
 
 	if l != nil && l.c < 2*kd {
@@ -510,7 +515,6 @@ func (t *Tree) Set(k int, v int) {
 				default:
 					t.overflow(p, x, pi, i, k, v)
 				}
-				t.ver++
 				return
 			}
 		}
@@ -522,6 +526,7 @@ func (t *Tree) Set(k int, v int) {
 }
 
 func (t *Tree) split(p *x, q *d, pi, i int, k int, v int) {
+	t.ver++
 	r := &d{}
 	if q.n != nil {
 		r.n = q.n
@@ -552,6 +557,7 @@ func (t *Tree) split(p *x, q *d, pi, i int, k int, v int) {
 }
 
 func (t *Tree) splitX(p *x, pp **x, pi int, i *int) {
+	t.ver++
 	q := *pp
 	r := &x{}
 	copy(r.x[:], q.x[kx+1:])
@@ -573,6 +579,7 @@ func (t *Tree) splitX(p *x, pp **x, pi int, i *int) {
 }
 
 func (t *Tree) underflow(p *x, q *d, pi int) {
+	t.ver++
 	l, r := p.siblings(pi)
 
 	if l != nil && l.c+q.c >= 2*kd {
@@ -588,6 +595,7 @@ func (t *Tree) underflow(p *x, q *d, pi int) {
 }
 
 func (t *Tree) underflowX(p *x, pp **x, pi int, i *int) {
+	t.ver++
 	var l, r *x
 	q := *pp
 
