@@ -39,6 +39,8 @@
 //
 // Running the benchmarks on a machine with Intel X5450 CPU @ 3 GHz:
 //
+// Go release (1.1.2)
+//
 //	$ go test -bench . example/bench_test.go example/int.go
 //	testing: warning: no tests to run
 //	PASS
@@ -55,9 +57,28 @@
 //	ok  	command-line-arguments	51.372s
 //	$
 //
+// Go 1.2rc2
+//
+//	$ go test -bench . example/bench_test.go example/int.go
+//	testing: warning: no tests to run
+//	PASS
+//	BenchmarkSetSeq	 5000000	       535 ns/op
+//	BenchmarkSetRnd	 1000000	      1428 ns/op
+//	BenchmarkGetSeq	10000000	       376 ns/op
+//	BenchmarkGetRnd	 2000000	      1105 ns/op
+//	BenchmarkDelSeq	 5000000	       618 ns/op
+//	BenchmarkDelRnd	 1000000	      1213 ns/op
+//	BenchmarkSeekSeq	 5000000	       538 ns/op
+//	BenchmarkSeekRnd	 1000000	      1088 ns/op
+//	BenchmarkNext1e3	  200000	     13410 ns/op
+//	BenchmarkPrev1e3	  200000	     13528 ns/op
+//	ok  	command-line-arguments	48.823s
+//	$
+//
 // Note that the Next and Prev benchmarks enumerate 1000 items (KV pairs), so
-// getting the next or previous iterated item is performed in about 13 ns. This
-// is the nice O(1) property of B+trees, usually not found in other tree types.
+// getting the next or previous iterated item is performed in about 13-14 ns.
+// This is the nice O(1) property of B+trees, usually not found in other tree
+// types.
 package b
 
 import (
