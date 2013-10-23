@@ -6,6 +6,7 @@ package b
 
 import (
 	"fmt"
+	"io"
 	"math"
 	"path"
 	"runtime"
@@ -762,5 +763,171 @@ func BenchmarkPrev1e3(b *testing.B) {
 		if n != N {
 			b.Fatal(n)
 		}
+	}
+}
+
+func TestSeekFirst0(t *testing.T) {
+	b := TreeNew(cmp)
+	_, err := b.SeekFirst()
+	if g, e := err, io.EOF; g != e {
+		t.Fatal(g, e)
+	}
+}
+
+func TestSeekFirst1(t *testing.T) {
+	b := TreeNew(cmp)
+	b.Set(1, 10)
+	en, err := b.SeekFirst()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k, v, err := en.Next()
+	if k != 1 || v != 10 || err != nil {
+		t.Fatal(k, v, err)
+	}
+
+	k, v, err = en.Next()
+	if err == nil {
+		t.Fatal(k, v, err)
+	}
+}
+
+func TestSeekFirst2(t *testing.T) {
+	b := TreeNew(cmp)
+	b.Set(1, 10)
+	b.Set(2, 20)
+	en, err := b.SeekFirst()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k, v, err := en.Next()
+	if k != 1 || v != 10 || err != nil {
+		t.Fatal(k, v, err)
+	}
+
+	k, v, err = en.Next()
+	if k != 2 || v != 20 || err != nil {
+		t.Fatal(k, v, err)
+	}
+
+	k, v, err = en.Next()
+	if err == nil {
+		t.Fatal(k, v, err)
+	}
+}
+
+func TestSeekFirst3(t *testing.T) {
+	b := TreeNew(cmp)
+	b.Set(2, 20)
+	b.Set(3, 30)
+	b.Set(1, 10)
+	en, err := b.SeekFirst()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k, v, err := en.Next()
+	if k != 1 || v != 10 || err != nil {
+		t.Fatal(k, v, err)
+	}
+
+	k, v, err = en.Next()
+	if k != 2 || v != 20 || err != nil {
+		t.Fatal(k, v, err)
+	}
+
+	k, v, err = en.Next()
+	if k != 3 || v != 30 || err != nil {
+		t.Fatal(k, v, err)
+	}
+
+	k, v, err = en.Next()
+	if err == nil {
+		t.Fatal(k, v, err)
+	}
+}
+
+func TestSeekLast0(t *testing.T) {
+	b := TreeNew(cmp)
+	_, err := b.SeekLast()
+	if g, e := err, io.EOF; g != e {
+		t.Fatal(g, e)
+	}
+}
+
+func TestSeekLast1(t *testing.T) {
+	b := TreeNew(cmp)
+	b.Set(1, 10)
+	en, err := b.SeekLast()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k, v, err := en.Prev()
+	if k != 1 || v != 10 || err != nil {
+		t.Fatal(k, v, err)
+	}
+
+	k, v, err = en.Prev()
+	if err == nil {
+		t.Fatal(k, v, err)
+	}
+}
+
+func TestSeekLast2(t *testing.T) {
+	b := TreeNew(cmp)
+	b.Set(1, 10)
+	b.Set(2, 20)
+	en, err := b.SeekLast()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k, v, err := en.Prev()
+	if k != 2 || v != 20 || err != nil {
+		t.Fatal(k, v, err)
+	}
+
+	k, v, err = en.Prev()
+	if k != 1 || v != 10 || err != nil {
+		t.Fatal(k, v, err)
+	}
+
+	k, v, err = en.Prev()
+	if err == nil {
+		t.Fatal(k, v, err)
+	}
+}
+
+func TestSeekLast3(t *testing.T) {
+	b := TreeNew(cmp)
+	b.Set(2, 20)
+	b.Set(3, 30)
+	b.Set(1, 10)
+	en, err := b.SeekLast()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	k, v, err := en.Prev()
+	if k != 3 || v != 30 || err != nil {
+		t.Fatal(k, v, err)
+	}
+
+	k, v, err = en.Prev()
+	if k != 2 || v != 20 || err != nil {
+		t.Fatal(k, v, err)
+	}
+
+	k, v, err = en.Prev()
+	if k != 1 || v != 10 || err != nil {
+		t.Fatal(k, v, err)
+	}
+
+	k, v, err = en.Prev()
+	if err == nil {
+		t.Fatal(k, v, err)
 	}
 }
