@@ -4,7 +4,7 @@
 
 // Package b implements a B+tree.
 //
-// Keys and their associated values are interface{} typed, similarly to all of
+// Keys and their associated values are interface{} typed, similar to all of
 // the containers in the standard library.
 //
 // Semiautomatic production of a type specific variant of this package is
@@ -12,10 +12,10 @@
 //
 //	$ make generic
 //
-// Performing it will write to stdout a version of the btree.go file where
+// This command will write to stdout a version of the btree.go file where
 // every key type occurrence is replaced by the word 'key' (written in all
 // CAPS) and every value type occurrence is replaced by the word 'value'
-// (written in all CAPS). Then you have to replace theses strings with your
+// (written in all CAPS). Then you have to replace these tokens with your
 // desired type(s), using any technique you're comfortable with.
 //
 // This is how, for example, 'example/int.go' was created:
@@ -77,7 +77,7 @@
 //
 // Note that the Next and Prev benchmarks enumerate 1000 items (KV pairs), so
 // getting the next or previous iterated item is performed in about 13-14 ns.
-// This is the nice O(1) property of B+trees, usually not found in other tree
+// This is the nice O(1) property of B+trees usually not found in other tree
 // types.
 package b
 
