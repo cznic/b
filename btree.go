@@ -4,6 +4,12 @@
 
 // Package b implements a B+tree.
 //
+// Changelog
+//
+// 2014-04-18: Added new method Put.
+//
+// Generic types
+//
 // Keys and their associated values are interface{} typed, similar to all of
 // the containers in the standard library.
 //
@@ -289,8 +295,8 @@ func (t *Tree) catX(p, q, r *x, pi int) {
 	t.r = q //TODO recycle r
 }
 
-//Delete removes the k's KV pair, if it exists, in which case Delete returns
-//true.
+// Delete removes the k's KV pair, if it exists, in which case Delete returns
+// true.
 func (t *Tree) Delete(k interface{} /*K*/) (ok bool) {
 	pi := -1
 	var p *x
@@ -397,7 +403,7 @@ func (t *Tree) find(q interface{}, k interface{} /*K*/) (i int, ok bool) {
 }
 
 // First returns the first item of the tree in the key collating order, or
-// (nil, nil) if the tree is empty.
+// (zero-value, zero-value) if the tree is empty.
 func (t *Tree) First() (k interface{} /*K*/, v interface{} /*V*/) {
 	if q := t.first; q != nil {
 		q := &q.d[0]
@@ -407,7 +413,7 @@ func (t *Tree) First() (k interface{} /*K*/, v interface{} /*V*/) {
 }
 
 // Get returns the value associated with k and true if it exists. Otherwise Get
-// returns (nil, false).
+// returns (zero-value, false).
 func (t *Tree) Get(k interface{} /*K*/) (v interface{} /*V*/, ok bool) {
 	q := t.r
 	if q == nil {
@@ -446,8 +452,8 @@ func (t *Tree) insert(q *d, i int, k interface{} /*K*/, v interface{} /*V*/) *d 
 	return q
 }
 
-// Last returns the last item of the tree in the key collating order, or (nil,
-// nil) if the tree is empty.
+// Last returns the last item of the tree in the key collating order, or
+// (zero-value, zero-value) if the tree is empty.
 func (t *Tree) Last() (k interface{} /*K*/, v interface{} /*V*/) {
 	if q := t.last; q != nil {
 		q := &q.d[q.c-1]
@@ -577,6 +583,84 @@ func (t *Tree) Set(k interface{} /*K*/, v interface{} /*V*/) {
 	}
 
 	z := t.insert(&d{}, 0, k, v)
+	t.r, t.first, t.last = z, z, z
+	return
+}
+
+// Put combines Get and Set in a more efficient way where the tree is walked
+// only once. The upd(ater) receives (old-value, true) if a KV pair for k
+// exists or (zero-value, false) otherwise. It can then return a (new-value,
+// true) to create or overwrite the existing value in the KV pair, or
+// (whatever, false) if it decides not to create or not to update the value of
+// the KV pair.
+//
+// 	tree.Set(k, v) conceptually equals
+//
+// 	tree.Put(k, func(k, v []byte){ return v, true }([]byte, bool))
+//
+// modulo the differing return values.
+func (t *Tree) Put(k interface{} /*K*/, upd func(oldV interface{} /*V*/, exists bool) (newV interface{} /*V*/, write bool)) (oldV interface{} /*V*/, written bool) {
+	pi := -1
+	var p *x
+	q := t.r
+	var newV interface{} /*V*/
+	if q != nil {
+		for {
+			i, ok := t.find(q, k)
+			if ok {
+				switch x := q.(type) {
+				case *x:
+					oldV = x.x[i].sep.d[0].v
+					newV, written = upd(oldV, true)
+					if !written {
+						return
+					}
+
+					x.x[i].sep.d[0].v = newV
+				case *d:
+					oldV = x.d[i].v
+					newV, written = upd(oldV, true)
+					if !written {
+						return
+					}
+
+					x.d[i].v = newV
+				}
+				return
+			}
+
+			switch x := q.(type) {
+			case *x:
+				if x.c > 2*kx {
+					t.splitX(p, &x, pi, &i)
+				}
+				pi = i
+				p = x
+				q = x.x[i].ch
+			case *d: // new KV pair
+				newV, written = upd(newV, false)
+				if !written {
+					return
+				}
+
+				switch {
+				case x.c < 2*kd:
+					t.insert(x, i, k, newV)
+				default:
+					t.overflow(p, x, pi, i, k, newV)
+				}
+				return
+			}
+		}
+	}
+
+	// new KV pair in empty tree
+	newV, written = upd(newV, false)
+	if !written {
+		return
+	}
+
+	z := t.insert(&d{}, 0, k, newV)
 	t.r, t.first, t.last = z, z, z
 	return
 }

@@ -11,6 +11,7 @@ import (
 	"path"
 	"runtime"
 	"runtime/debug"
+	"strings"
 	"testing"
 
 	"github.com/cznic/fileutil"
@@ -19,7 +20,10 @@ import (
 
 func use(...interface{}) {}
 
-var dbg = func(s string, va ...interface{}) {
+func dbg(s string, va ...interface{}) {
+	if s == "" {
+		s = strings.Repeat("%v ", len(va))
+	}
 	_, fn, fl, _ := runtime.Caller(1)
 	fmt.Printf("%s:%d: ", path.Base(fn), fl)
 	fmt.Printf(s, va...)
@@ -929,5 +933,120 @@ func TestSeekLast3(t *testing.T) {
 	k, v, err = en.Prev()
 	if err == nil {
 		t.Fatal(k, v, err)
+	}
+}
+
+func TestPut(t *testing.T) {
+	tab := []struct {
+		pre    []int // even index: K, odd index: V
+		newK   int   // Put(newK, ...
+		oldV   int   // Put()->oldV
+		exists bool  // upd(exists)
+		write  bool  // upd()->write
+		post   []int // even index: K, odd index: V
+	}{
+		// 0
+		{
+			[]int{},
+			1, 0, false, false,
+			[]int{},
+		},
+		{
+			[]int{},
+			1, 0, false, true,
+			[]int{1, -1},
+		},
+		{
+			[]int{1, 10},
+			0, 0, false, false,
+			[]int{1, 10},
+		},
+		{
+			[]int{1, 10},
+			0, 0, false, true,
+			[]int{0, -1, 1, 10},
+		},
+		{
+			[]int{1, 10},
+			1, 10, true, false,
+			[]int{1, 10},
+		},
+
+		// 5
+		{
+			[]int{1, 10},
+			1, 10, true, true,
+			[]int{1, -1},
+		},
+		{
+			[]int{1, 10},
+			2, 0, false, false,
+			[]int{1, 10},
+		},
+		{
+			[]int{1, 10},
+			2, 0, false, true,
+			[]int{1, 10, 2, -1},
+		},
+	}
+
+	for iTest, test := range tab {
+		tr := TreeNew(cmp)
+		for i := 0; i < len(test.pre); i += 2 {
+			k, v := test.pre[i], test.pre[i+1]
+			tr.Set(k, v)
+		}
+
+		oldV, written := tr.Put(test.newK, func(old interface{}, exists bool) (newV interface{}, write bool) {
+			if g, e := exists, test.exists; g != e {
+				t.Fatal(iTest, g, e)
+			}
+
+			if exists {
+				if g, e := old.(int), test.oldV; g != e {
+					t.Fatal(iTest, g, e)
+				}
+			}
+			return -1, test.write
+		})
+		if test.exists {
+			if g, e := oldV.(int), test.oldV; g != e {
+				t.Fatal(iTest, g, e)
+			}
+		}
+
+		if g, e := written, test.write; g != e {
+			t.Fatal(iTest, g, e)
+		}
+
+		n := len(test.post)
+		en, err := tr.SeekFirst()
+		if err != nil {
+			if n == 0 && err == io.EOF {
+				continue
+			}
+
+			t.Fatal(iTest, err)
+		}
+
+		for i := 0; i < len(test.post); i += 2 {
+			k, v, err := en.Next()
+			if err != nil {
+				t.Fatal(iTest, err)
+			}
+
+			if g, e := k.(int), test.post[i]; g != e {
+				t.Fatal(iTest, g, e)
+			}
+
+			if g, e := v.(int), test.post[i+1]; g != e {
+				t.Fatal(iTest, g, e)
+			}
+		}
+
+		_, _, err = en.Next()
+		if g, e := err, io.EOF; g != e {
+			t.Fatal(iTest, g, e)
+		}
 	}
 }
