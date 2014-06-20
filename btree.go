@@ -60,8 +60,8 @@ import (
 //TODO check vs orig initialize/finalize
 
 const (
-	kx = 128 //TODO benchmark tune this number if using custom key/value type(s).
-	kd = 64  //TODO benchmark tune this number if using custom key/value type(s).
+	kx = 128 // min 2 //TODO benchmark tune this number if using custom key/value type(s).
+	kd = 64  // min 1 //TODO benchmark tune this number if using custom key/value type(s).
 )
 
 type (
@@ -114,8 +114,8 @@ type (
 	}
 
 	xe struct { // x element
-		ch  interface{}
-		sep *d
+		ch interface{}
+		k  interface{} /*K*/
 	}
 
 	x struct { // index page
@@ -129,6 +129,7 @@ var ( // R/O zero values
 	zde de
 	zx  x
 	zxe xe
+	zk  interface{} /*K*/
 )
 
 func clr(q interface{}) {
@@ -156,21 +157,21 @@ func (q *x) extract(i int) {
 	if i < q.c {
 		copy(q.x[i:], q.x[i+1:q.c+1])
 		q.x[q.c].ch = q.x[q.c+1].ch
-		q.x[q.c].sep = nil // GC
-		q.x[q.c+1] = zxe   // GC
+		q.x[q.c].k = zk  // GC
+		q.x[q.c+1] = zxe // GC
 	}
 }
 
-func (q *x) insert(i int, d *d, ch interface{}) *x {
+func (q *x) insert(i int, k interface{} /*K*/, ch interface{}) *x {
 	c := q.c
 	if i < c {
 		q.x[c+1].ch = q.x[c].ch
 		copy(q.x[i+2:], q.x[i+1:c])
-		q.x[i+1].sep = q.x[i].sep
+		q.x[i+1].k = q.x[i].k
 	}
 	c++
 	q.c = c
-	q.x[i].sep = d
+	q.x[i].k = k
 	q.x[i+1].ch = ch
 	return q
 }
@@ -241,7 +242,7 @@ func (t *Tree) cat(p *x, q, r *d, pi int) {
 
 func (t *Tree) catX(p, q, r *x, pi int) {
 	t.ver++
-	q.x[q.c].sep = p.x[pi].sep
+	q.x[q.c].k = p.x[pi].k
 	copy(q.x[q.c+1:], r.x[:r.c])
 	q.c += r.c + 1
 	q.x[q.c].ch = r.x[r.c].ch //TODO recycle r
@@ -249,10 +250,10 @@ func (t *Tree) catX(p, q, r *x, pi int) {
 		p.c--
 		pc := p.c
 		if pi < pc {
-			p.x[pi].sep = p.x[pi+1].sep
+			p.x[pi].k = p.x[pi+1].k
 			copy(p.x[pi+1:], p.x[pi+2:pc+1])
 			p.x[pc].ch = p.x[pc+1].ch
-			p.x[pc].sep = nil  // GC
+			p.x[pc].k = zk     // GC
 			p.x[pc+1].ch = nil // GC
 		}
 		return
@@ -268,7 +269,7 @@ func (t *Tree) Delete(k interface{} /*K*/) (ok bool) {
 	var p *x
 	q := t.r
 	if q == nil {
-		return
+		return false
 	}
 
 	for {
@@ -277,24 +278,18 @@ func (t *Tree) Delete(k interface{} /*K*/) (ok bool) {
 		if ok {
 			switch x := q.(type) {
 			case *x:
-				dp := x.x[i].sep
-				switch {
-				case dp.c > kd:
-					t.extract(dp, 0)
-				default:
-					if x.c < kx && q != t.r {
-						t.underflowX(p, &x, pi, &i)
-					}
-					pi = i + 1
-					p = x
-					q = x.x[pi].ch
-					ok = false
-					continue
+				if x.c < kx && q != t.r {
+					t.underflowX(p, &x, pi, &i)
 				}
+				pi = i + 1
+				p = x
+				q = x.x[pi].ch
+				ok = false
+				continue
 			case *d:
 				t.extract(x, i)
 				if x.c >= kd {
-					return
+					return true
 				}
 
 				if q != t.r {
@@ -302,8 +297,8 @@ func (t *Tree) Delete(k interface{} /*K*/) (ok bool) {
 				} else if t.c == 0 {
 					t.Clear()
 				}
+				return true
 			}
-			return
 		}
 
 		switch x := q.(type) {
@@ -315,7 +310,7 @@ func (t *Tree) Delete(k interface{} /*K*/) (ok bool) {
 			p = x
 			q = x.x[i].ch
 		case *d:
-			return
+			return false
 		}
 	}
 }
@@ -340,7 +335,7 @@ func (t *Tree) find(q interface{}, k interface{} /*K*/) (i int, ok bool) {
 		h := x.c - 1
 		for l <= h {
 			m := (l + h) >> 1
-			mk = x.x[m].sep.d[0].k
+			mk = x.x[m].k
 			switch cmp := t.cmp(k, mk); {
 			case cmp > 0:
 				l = m + 1
@@ -368,15 +363,15 @@ func (t *Tree) find(q interface{}, k interface{} /*K*/) (i int, ok bool) {
 	return l, false
 }
 
-// First returns the first item of the tree in the key collating order, or
-// (zero-value, zero-value) if the tree is empty.
-func (t *Tree) First() (k interface{} /*K*/, v interface{} /*V*/) {
-	if q := t.first; q != nil {
-		q := &q.d[0]
-		k, v = q.k, q.v
-	}
-	return
-}
+//A // First returns the first item of the tree in the key collating order, or
+//A // (zero-value, zero-value) if the tree is empty.
+//A func (t *Tree) First() (k interface{} /*K*/, v interface{} /*V*/) {
+//A 	if q := t.first; q != nil {
+//A 		q := &q.d[0]
+//A 		k, v = q.k, q.v
+//A 	}
+//A 	return
+//A }
 
 // Get returns the value associated with k and true if it exists. Otherwise Get
 // returns (zero-value, false).
@@ -391,7 +386,8 @@ func (t *Tree) Get(k interface{} /*K*/) (v interface{} /*V*/, ok bool) {
 		if i, ok = t.find(q, k); ok {
 			switch x := q.(type) {
 			case *x:
-				return x.x[i].sep.d[0].v, true
+				q = x.x[i+1].ch
+				continue
 			case *d:
 				return x.d[i].v, true
 			}
@@ -418,15 +414,15 @@ func (t *Tree) insert(q *d, i int, k interface{} /*K*/, v interface{} /*V*/) *d 
 	return q
 }
 
-// Last returns the last item of the tree in the key collating order, or
-// (zero-value, zero-value) if the tree is empty.
-func (t *Tree) Last() (k interface{} /*K*/, v interface{} /*V*/) {
-	if q := t.last; q != nil {
-		q := &q.d[q.c-1]
-		k, v = q.k, q.v
-	}
-	return
-}
+//A // Last returns the last item of the tree in the key collating order, or
+//A // (zero-value, zero-value) if the tree is empty.
+//A func (t *Tree) Last() (k interface{} /*K*/, v interface{} /*V*/) {
+//A 	if q := t.last; q != nil {
+//A 		q := &q.d[q.c-1]
+//A 		k, v = q.k, q.v
+//A 	}
+//A 	return
+//A }
 
 // Len returns the number of items in the tree.
 func (t *Tree) Len() int {
@@ -440,6 +436,7 @@ func (t *Tree) overflow(p *x, q *d, pi, i int, k interface{} /*K*/, v interface{
 	if l != nil && l.c < 2*kd {
 		l.mvL(q, 1)
 		t.insert(q, i-1, k, v)
+		p.x[pi-1].k = q.d[0].k
 		return
 	}
 
@@ -447,8 +444,10 @@ func (t *Tree) overflow(p *x, q *d, pi, i int, k interface{} /*K*/, v interface{
 		if i < 2*kd {
 			q.mvR(r, 1)
 			t.insert(q, i, k, v)
+			p.x[pi].k = r.d[0].k
 		} else {
 			t.insert(r, 0, k, v)
+			p.x[pi].k = k
 		}
 		return
 	}
@@ -471,8 +470,8 @@ func (t *Tree) Seek(k interface{} /*K*/) (e *Enumerator, ok bool) {
 		if i, ok = t.find(q, k); ok {
 			switch x := q.(type) {
 			case *x:
-				e = &Enumerator{nil, ok, 0, k, x.x[i].sep, t, t.ver}
-				return
+				q = x.x[i+1].ch
+				continue
 			case *d:
 				e = &Enumerator{nil, ok, i, k, x, t, t.ver}
 				return
@@ -512,45 +511,50 @@ func (t *Tree) SeekLast() (e *Enumerator, err error) {
 
 // Set sets the value associated with k.
 func (t *Tree) Set(k interface{} /*K*/, v interface{} /*V*/) {
+	//dbg("--- PRE Set(%v, %v)\n%s", k, v, t.dump())
+	//defer func() {
+	//	dbg("--- POST\n%s\n====\n", t.dump())
+	//}()
 	pi := -1
 	var p *x
 	q := t.r
-	if q != nil {
-		for {
-			i, ok := t.find(q, k)
-			if ok {
-				switch x := q.(type) {
-				case *x:
-					x.x[i].sep.d[0].v = v
-				case *d:
-					x.d[i].v = v
-				}
-				return
-			}
-
-			switch x := q.(type) {
-			case *x:
-				if x.c > 2*kx {
-					t.splitX(p, &x, pi, &i)
-				}
-				pi = i
-				p = x
-				q = x.x[i].ch
-			case *d:
-				switch {
-				case x.c < 2*kd:
-					t.insert(x, i, k, v)
-				default:
-					t.overflow(p, x, pi, i, k, v)
-				}
-				return
-			}
-		}
+	if q == nil {
+		z := t.insert(&d{}, 0, k, v)
+		t.r, t.first, t.last = z, z, z
+		return
 	}
 
-	z := t.insert(&d{}, 0, k, v)
-	t.r, t.first, t.last = z, z, z
-	return
+	for {
+		i, ok := t.find(q, k)
+		if ok {
+			switch x := q.(type) {
+			case *x:
+				q = x.x[i+1].ch
+				continue
+			case *d:
+				x.d[i].v = v
+			}
+			return
+		}
+
+		switch x := q.(type) {
+		case *x:
+			if x.c > 2*kx {
+				t.splitX(p, &x, pi, &i)
+			}
+			pi = i
+			p = x
+			q = x.x[i].ch
+		case *d:
+			switch {
+			case x.c < 2*kd:
+				t.insert(x, i, k, v)
+			default:
+				t.overflow(p, x, pi, i, k, v)
+			}
+			return
+		}
+	}
 }
 
 // Put combines Get and Set in a more efficient way where the tree is walked
@@ -576,13 +580,8 @@ func (t *Tree) Put(k interface{} /*K*/, upd func(oldV interface{} /*V*/, exists 
 			if ok {
 				switch x := q.(type) {
 				case *x:
-					oldV = x.x[i].sep.d[0].v
-					newV, written = upd(oldV, true)
-					if !written {
-						return
-					}
-
-					x.x[i].sep.d[0].v = newV
+					q = x.x[i+1].ch
+					continue
 				case *d:
 					oldV = x.d[i].v
 					newV, written = upd(oldV, true)
@@ -649,13 +648,17 @@ func (t *Tree) split(p *x, q *d, pi, i int, k interface{} /*K*/, v interface{} /
 	}
 	q.c = kd
 	r.c = kd
-	if pi >= 0 {
-		p.insert(pi, r, r)
-	} else {
-		t.r = newX(q).insert(0, r, r)
-	}
+	var done bool
 	if i > kd {
+		done = true
 		t.insert(r, i-kd, k, v)
+	}
+	if pi >= 0 {
+		p.insert(pi, r.d[0].k, r)
+	} else {
+		t.r = newX(q).insert(0, r.d[0].k, r)
+	}
+	if done {
 		return
 	}
 
@@ -670,11 +673,11 @@ func (t *Tree) splitX(p *x, pp **x, pi int, i *int) {
 	q.c = kx
 	r.c = kx
 	if pi >= 0 {
-		p.insert(pi, q.x[kx].sep, r)
+		p.insert(pi, q.x[kx].k, r)
 	} else {
-		t.r = newX(q).insert(0, q.x[kx].sep, r)
+		t.r = newX(q).insert(0, q.x[kx].k, r)
 	}
-	q.x[kx].sep = nil
+	q.x[kx].k = zk
 	for i := range q.x[kx+1:] {
 		q.x[kx+i+1] = zxe
 	}
@@ -690,8 +693,10 @@ func (t *Tree) underflow(p *x, q *d, pi int) {
 
 	if l != nil && l.c+q.c >= 2*kd {
 		l.mvR(q, 1)
+		p.x[pi-1].k = q.d[0].k
 	} else if r != nil && q.c+r.c >= 2*kd {
 		q.mvL(r, 1)
+		p.x[pi].k = r.d[0].k
 		r.d[r.c] = zde // GC
 	} else if l != nil {
 		t.cat(p, l, q, pi-1)
@@ -718,24 +723,24 @@ func (t *Tree) underflowX(p *x, pp **x, pi int, i *int) {
 		q.x[q.c+1].ch = q.x[q.c].ch
 		copy(q.x[1:], q.x[:q.c])
 		q.x[0].ch = l.x[l.c].ch
-		q.x[0].sep = p.x[pi-1].sep
+		q.x[0].k = p.x[pi-1].k
 		q.c++
 		*i++
 		l.c--
-		p.x[pi-1].sep = l.x[l.c].sep
+		p.x[pi-1].k = l.x[l.c].k
 		return
 	}
 
 	if r != nil && r.c > kx {
-		q.x[q.c].sep = p.x[pi].sep
+		q.x[q.c].k = p.x[pi].k
 		q.c++
 		q.x[q.c].ch = r.x[0].ch
-		p.x[pi].sep = r.x[0].sep
+		p.x[pi].k = r.x[0].k
 		copy(r.x[:], r.x[1:r.c])
 		r.c--
 		rc := r.c
 		r.x[rc].ch = r.x[rc+1].ch
-		r.x[rc].sep = nil
+		r.x[rc].k = zk
 		r.x[rc+1].ch = nil
 		return
 	}

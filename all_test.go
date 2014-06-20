@@ -5,6 +5,7 @@
 package b
 
 import (
+	"bytes"
 	"fmt"
 	"io"
 	"math"
@@ -14,11 +15,16 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cznic/fileutil"
 	"github.com/cznic/mathutil"
+	"github.com/cznic/strutil"
 )
 
-func use(...interface{}) {}
+var caller = func(s string, va ...interface{}) {
+	_, fn, fl, _ := runtime.Caller(2)
+	fmt.Printf("%s:%d: ", path.Base(fn), fl)
+	fmt.Printf(s, va...)
+	fmt.Println()
+}
 
 func dbg(s string, va ...interface{}) {
 	if s == "" {
@@ -30,12 +36,14 @@ func dbg(s string, va ...interface{}) {
 	fmt.Println()
 }
 
-var caller = func(s string, va ...interface{}) {
-	_, fn, fl, _ := runtime.Caller(2)
-	fmt.Printf("%s:%d: ", path.Base(fn), fl)
-	fmt.Printf(s, va...)
-	fmt.Println()
+func TODO(...interface{}) string {
+	_, fn, fl, _ := runtime.Caller(1)
+	return fmt.Sprintf("TODO: %s:%d:\n", path.Base(fn), fl)
 }
+
+func use(...interface{}) {}
+
+// ============================================================================
 
 func isNil(p interface{}) bool {
 	switch x := p.(type) {
@@ -52,6 +60,9 @@ func isNil(p interface{}) bool {
 }
 
 func (t *Tree) dump() string {
+	var buf bytes.Buffer
+	f := strutil.IndentFormatter(&buf, "\t")
+
 	num := map[interface{}]int{}
 	visited := map[interface{}]bool{}
 
@@ -81,20 +92,20 @@ func (t *Tree) dump() string {
 			h := handle(p)
 			n := 0
 			for i, v := range x.x {
-				if v.ch != nil || v.sep != nil {
+				if v.ch != nil || v.k != nil {
 					n = i + 1
 				}
 			}
-			fmt.Printf("%sX#%d n %d:%d {", pref, h, x.c, n)
+			f.Format("%sX#%d n %d:%d {", pref, h, x.c, n)
 			a := []interface{}{}
 			for i, v := range x.x[:n] {
-				a = append(a, v.ch, v.sep)
+				a = append(a, v.ch)
 				if i != 0 {
-					fmt.Printf(" ")
+					f.Format(" ")
 				}
-				fmt.Printf("(C#%d D#%d)", handle(v.ch), handle(v.sep))
+				f.Format("(C#%d K %v)", handle(v.ch), v.k)
 			}
-			fmt.Printf("}\n")
+			f.Format("}\n")
 			for _, p := range a {
 				pagedump(p, pref+". ")
 			}
@@ -106,19 +117,23 @@ func (t *Tree) dump() string {
 					n = i + 1
 				}
 			}
-			fmt.Printf("%sD#%d P#%d N#%d n %d:%d {", pref, h, handle(x.p), handle(x.n), x.c, n)
+			f.Format("%sD#%d P#%d N#%d n %d:%d {", pref, h, handle(x.p), handle(x.n), x.c, n)
 			for i, v := range x.d[:n] {
 				if i != 0 {
-					fmt.Printf(" ")
+					f.Format(" ")
 				}
-				fmt.Printf("%v:%v", v.k, v.v)
+				f.Format("%v:%v", v.k, v.v)
 			}
-			fmt.Printf("}\n")
+			f.Format("}\n")
 		}
 	}
 
 	pagedump(t.r, "")
-	return ""
+	s := buf.String()
+	if s != "" {
+		s = s[:len(s)-1]
+	}
+	return s
 }
 
 func rng() *mathutil.FC32 {
@@ -203,7 +218,7 @@ func TestSetGet0(t *testing.T) {
 }
 
 func TestSetGet1(t *testing.T) {
-	const N = 90000
+	const N = 50000
 	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
@@ -387,7 +402,7 @@ func benchmarkGetRnd(b *testing.B, n int) {
 }
 
 func TestSetGet2(t *testing.T) {
-	const N = 70000
+	const N = 50000
 	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
@@ -533,7 +548,7 @@ func TestDelete0(t *testing.T) {
 }
 
 func TestDelete1(t *testing.T) {
-	const N = 100000
+	const N = 60000
 	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
@@ -638,7 +653,7 @@ func benchmarkDelRnd(b *testing.B, n int) {
 }
 
 func TestDelete2(t *testing.T) {
-	const N = 80000
+	const N = 50000
 	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
@@ -703,7 +718,7 @@ func TestEnumeratorNext(t *testing.T) {
 
 				k, v, err := en.Next()
 				if err != nil {
-					if !fileutil.IsEOF(err) {
+					if err != io.EOF {
 						t.Fatal(i, err)
 					}
 
@@ -773,7 +788,7 @@ func TestEnumeratorPrev(t *testing.T) {
 
 				k, v, err := en.Prev()
 				if err != nil {
-					if !fileutil.IsEOF(err) {
+					if err != io.EOF {
 						t.Fatal(i, err)
 					}
 
