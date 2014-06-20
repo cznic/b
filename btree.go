@@ -35,56 +35,22 @@
 //	$ make generic | sed -e 's/key/int/g' -e 's/value/int/g' > example/int.go
 //
 // No other changes to int.go are (strictly) necessary, it compiles just fine.
-// In a next step, benchmarks from all_test.go were copied into
-// example/bench_test.go without any changes.  A comparator is defined in
-// bench_test.go like this:
 //
-//	func cmp(a, b int) int {
-//		return a - b
-//	}
+// Running the benchmarks for 1000 keys on a machine with Intel X5450 CPU @ 3
+// GHz, Go release 1.3.
 //
-// Running the benchmarks on a machine with Intel X5450 CPU @ 3 GHz:
-//
-// Go release (1.1.2)
-//
-//	$ go test -bench . example/bench_test.go example/int.go
-//	testing: warning: no tests to run
+//	$ go test -bench 1e3 example/all_test.go example/int.go
 //	PASS
-//	BenchmarkSetSeq	 5000000	       590 ns/op
-//	BenchmarkSetRnd	 1000000	      1530 ns/op
-//	BenchmarkGetSeq	10000000	       373 ns/op
-//	BenchmarkGetRnd	 2000000	      1109 ns/op
-//	BenchmarkDelSeq	 5000000	       672 ns/op
-//	BenchmarkDelRnd	 1000000	      1275 ns/op
-//	BenchmarkSeekSeq	 5000000	       552 ns/op
-//	BenchmarkSeekRnd	 1000000	      1108 ns/op
-//	BenchmarkNext1e3	  200000	     13414 ns/op
-//	BenchmarkPrev1e3	  200000	     13215 ns/op
-//	ok  	command-line-arguments	51.372s
-//	$
-//
-// Go 1.2rc2
-//
-//	$ go test -bench . example/bench_test.go example/int.go
-//	testing: warning: no tests to run
-//	PASS
-//	BenchmarkSetSeq	 5000000	       535 ns/op
-//	BenchmarkSetRnd	 1000000	      1428 ns/op
-//	BenchmarkGetSeq	10000000	       376 ns/op
-//	BenchmarkGetRnd	 2000000	      1105 ns/op
-//	BenchmarkDelSeq	 5000000	       618 ns/op
-//	BenchmarkDelRnd	 1000000	      1213 ns/op
-//	BenchmarkSeekSeq	 5000000	       538 ns/op
-//	BenchmarkSeekRnd	 1000000	      1088 ns/op
-//	BenchmarkNext1e3	  200000	     13410 ns/op
-//	BenchmarkPrev1e3	  200000	     13528 ns/op
-//	ok  	command-line-arguments	48.823s
-//	$
-//
-// Note that the Next and Prev benchmarks enumerate 1000 items (KV pairs), so
-// getting the next or previous iterated item is performed in about 13-14 ns.
-// This is the nice O(1) property of B+trees usually not found in other tree
-// types.
+//	BenchmarkSetSeq1e3	   10000	    263951 ns/op
+//	BenchmarkGetSeq1e3	   10000	    154410 ns/op
+//	BenchmarkSetRnd1e3	    5000	    392690 ns/op
+//	BenchmarkGetRnd1e3	   10000	    181776 ns/op
+//	BenchmarkDelRnd1e3	    5000	    323795 ns/op
+//	BenchmarkSeekSeq1e3	   10000	    235939 ns/op
+//	BenchmarkSeekRnd1e3	    5000	    299997 ns/op
+//	BenchmarkNext1e3	  200000	     14202 ns/op
+//	BenchmarkPrev1e3	  200000	     13842 ns/op
+//	ok  	command-line-arguments	30.620s
 package b
 
 import (

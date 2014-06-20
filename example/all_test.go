@@ -5,121 +5,14 @@
 package b
 
 import (
-	"fmt"
 	"io"
 	"math"
-	"path"
-	"runtime"
 	"runtime/debug"
-	"strings"
 	"testing"
 
 	"github.com/cznic/fileutil"
 	"github.com/cznic/mathutil"
 )
-
-func use(...interface{}) {}
-
-func dbg(s string, va ...interface{}) {
-	if s == "" {
-		s = strings.Repeat("%v ", len(va))
-	}
-	_, fn, fl, _ := runtime.Caller(1)
-	fmt.Printf("%s:%d: ", path.Base(fn), fl)
-	fmt.Printf(s, va...)
-	fmt.Println()
-}
-
-var caller = func(s string, va ...interface{}) {
-	_, fn, fl, _ := runtime.Caller(2)
-	fmt.Printf("%s:%d: ", path.Base(fn), fl)
-	fmt.Printf(s, va...)
-	fmt.Println()
-}
-
-func isNil(p interface{}) bool {
-	switch x := p.(type) {
-	case *x:
-		if x == nil {
-			return true
-		}
-	case *d:
-		if x == nil {
-			return true
-		}
-	}
-	return false
-}
-
-func (t *Tree) dump() string {
-	num := map[interface{}]int{}
-	visited := map[interface{}]bool{}
-
-	handle := func(p interface{}) int {
-		if isNil(p) {
-			return 0
-		}
-
-		if n, ok := num[p]; ok {
-			return n
-		}
-
-		n := len(num) + 1
-		num[p] = n
-		return n
-	}
-
-	var pagedump func(interface{}, string)
-	pagedump = func(p interface{}, pref string) {
-		if isNil(p) || visited[p] {
-			return
-		}
-
-		visited[p] = true
-		switch x := p.(type) {
-		case *x:
-			h := handle(p)
-			n := 0
-			for i, v := range x.x {
-				if v.ch != nil || v.sep != nil {
-					n = i + 1
-				}
-			}
-			fmt.Printf("%sX#%d n %d:%d {", pref, h, x.c, n)
-			a := []interface{}{}
-			for i, v := range x.x[:n] {
-				a = append(a, v.ch, v.sep)
-				if i != 0 {
-					fmt.Printf(" ")
-				}
-				fmt.Printf("(C#%d D#%d)", handle(v.ch), handle(v.sep))
-			}
-			fmt.Printf("}\n")
-			for _, p := range a {
-				pagedump(p, pref+". ")
-			}
-		case *d:
-			h := handle(p)
-			n := 0
-			for i, v := range x.d {
-				if v.k != nil || v.v != nil {
-					n = i + 1
-				}
-			}
-			fmt.Printf("%sD#%d P#%d N#%d n %d:%d {", pref, h, handle(x.p), handle(x.n), x.c, n)
-			for i, v := range x.d[:n] {
-				if i != 0 {
-					fmt.Printf(" ")
-				}
-				fmt.Printf("%v:%v", v.k, v.v)
-			}
-			fmt.Printf("}\n")
-		}
-	}
-
-	pagedump(t.r, "")
-	return ""
-}
 
 func rng() *mathutil.FC32 {
 	x, err := mathutil.NewFC32(math.MinInt32/4, math.MaxInt32/4, false)
@@ -130,8 +23,8 @@ func rng() *mathutil.FC32 {
 	return x
 }
 
-func cmp(a, b interface{}) int {
-	return a.(int) - b.(int)
+func cmp(a, b int) int {
+	return a - b
 }
 
 func TestGet0(t *testing.T) {
@@ -160,7 +53,7 @@ func TestSetGet0(t *testing.T) {
 		t.Fatal(ok)
 	}
 
-	if g, e := v.(int), 314; g != e {
+	if g, e := v, 314; g != e {
 		t.Fatal(g, e)
 	}
 
@@ -174,11 +67,11 @@ func TestSetGet0(t *testing.T) {
 		t.Fatal(ok)
 	}
 
-	if g, e := v.(int), 278; g != e {
+	if g, e := v, 278; g != e {
 		t.Fatal(g, e)
 	}
 
-	set(420, 0.5)
+	set(420, 50)
 	if g, e := r.Len(), 2; g != e {
 		t.Fatal(g, e)
 	}
@@ -188,7 +81,7 @@ func TestSetGet0(t *testing.T) {
 		t.Fatal(ok)
 	}
 
-	if g, e := v.(int), 278; g != e {
+	if g, e := v, 278; g != e {
 		t.Fatal(g, e)
 	}
 
@@ -197,7 +90,7 @@ func TestSetGet0(t *testing.T) {
 		t.Fatal(ok)
 	}
 
-	if g, e := v.(float64), 0.5; g != e {
+	if g, e := v, 50; g != e {
 		t.Fatal(g, e)
 	}
 }
@@ -224,7 +117,7 @@ func TestSetGet1(t *testing.T) {
 				t.Fatal(i, k, v, ok)
 			}
 
-			if g, e := v.(int), k^x; g != e {
+			if g, e := v, k^x; g != e {
 				t.Fatal(i, g, e)
 			}
 
@@ -409,7 +302,7 @@ func TestSetGet2(t *testing.T) {
 				t.Fatal(i, k, v, ok)
 			}
 
-			if g, e := v.(int), k^x; g != e {
+			if g, e := v, k^x; g != e {
 				t.Fatal(i, g, e)
 			}
 
@@ -442,7 +335,7 @@ func TestSetGet3(t *testing.T) {
 			t.Fatal(j)
 		}
 
-		if g, e := v.(int), j; g != e {
+		if g, e := v, j; g != e {
 			t.Fatal(g, e)
 		}
 	}
@@ -714,11 +607,11 @@ func TestEnumeratorNext(t *testing.T) {
 					t.Fatal(i, j, verChange)
 				}
 
-				if g, e := k.(int), up[j]; g != e {
+				if g, e := k, up[j]; g != e {
 					t.Fatal(i, j, verChange, g, e)
 				}
 
-				if g, e := v.(int), 10*up[j]; g != e {
+				if g, e := v, 10*up[j]; g != e {
 					t.Fatal(i, g, e)
 				}
 
@@ -784,11 +677,11 @@ func TestEnumeratorPrev(t *testing.T) {
 					t.Fatal(i, j, verChange)
 				}
 
-				if g, e := k.(int), dn[j]; g != e {
+				if g, e := k, dn[j]; g != e {
 					t.Fatal(i, j, verChange, g, e)
 				}
 
-				if g, e := v.(int), 10*dn[j]; g != e {
+				if g, e := v, 10*dn[j]; g != e {
 					t.Fatal(i, g, e)
 				}
 
@@ -1198,20 +1091,20 @@ func TestPut(t *testing.T) {
 			tr.Set(k, v)
 		}
 
-		oldV, written := tr.Put(test.newK, func(old interface{}, exists bool) (newV interface{}, write bool) {
+		oldV, written := tr.Put(test.newK, func(old int, exists bool) (newV int, write bool) {
 			if g, e := exists, test.exists; g != e {
 				t.Fatal(iTest, g, e)
 			}
 
 			if exists {
-				if g, e := old.(int), test.oldV; g != e {
+				if g, e := old, test.oldV; g != e {
 					t.Fatal(iTest, g, e)
 				}
 			}
 			return -1, test.write
 		})
 		if test.exists {
-			if g, e := oldV.(int), test.oldV; g != e {
+			if g, e := oldV, test.oldV; g != e {
 				t.Fatal(iTest, g, e)
 			}
 		}
@@ -1236,11 +1129,11 @@ func TestPut(t *testing.T) {
 				t.Fatal(iTest, err)
 			}
 
-			if g, e := k.(int), test.post[i]; g != e {
+			if g, e := k, test.post[i]; g != e {
 				t.Fatal(iTest, g, e)
 			}
 
-			if g, e := v.(int), test.post[i+1]; g != e {
+			if g, e := v, test.post[i+1]; g != e {
 				t.Fatal(iTest, g, e)
 			}
 		}
