@@ -363,15 +363,15 @@ func (t *Tree) find(q interface{}, k interface{} /*K*/) (i int, ok bool) {
 	return l, false
 }
 
-//A // First returns the first item of the tree in the key collating order, or
-//A // (zero-value, zero-value) if the tree is empty.
-//A func (t *Tree) First() (k interface{} /*K*/, v interface{} /*V*/) {
-//A 	if q := t.first; q != nil {
-//A 		q := &q.d[0]
-//A 		k, v = q.k, q.v
-//A 	}
-//A 	return
-//A }
+// First returns the first item of the tree in the key collating order, or
+// (zero-value, zero-value) if the tree is empty.
+func (t *Tree) First() (k interface{} /*K*/, v interface{} /*V*/) {
+	if q := t.first; q != nil {
+		q := &q.d[0]
+		k, v = q.k, q.v
+	}
+	return
+}
 
 // Get returns the value associated with k and true if it exists. Otherwise Get
 // returns (zero-value, false).
@@ -414,15 +414,15 @@ func (t *Tree) insert(q *d, i int, k interface{} /*K*/, v interface{} /*V*/) *d 
 	return q
 }
 
-//A // Last returns the last item of the tree in the key collating order, or
-//A // (zero-value, zero-value) if the tree is empty.
-//A func (t *Tree) Last() (k interface{} /*K*/, v interface{} /*V*/) {
-//A 	if q := t.last; q != nil {
-//A 		q := &q.d[q.c-1]
-//A 		k, v = q.k, q.v
-//A 	}
-//A 	return
-//A }
+// Last returns the last item of the tree in the key collating order, or
+// (zero-value, zero-value) if the tree is empty.
+func (t *Tree) Last() (k interface{} /*K*/, v interface{} /*V*/) {
+	if q := t.last; q != nil {
+		q := &q.d[q.c-1]
+		k, v = q.k, q.v
+	}
+	return
+}
 
 // Len returns the number of items in the tree.
 func (t *Tree) Len() int {
