@@ -218,8 +218,8 @@ func TestSetGet0(t *testing.T) {
 }
 
 func TestSetGet1(t *testing.T) {
-	const N = 50000
-	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x314259} {
+	const N = 60000
+	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x333333, 0xcccccc, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
@@ -253,10 +253,6 @@ func TestSetGet1(t *testing.T) {
 	}
 }
 
-func BenchmarkSetSeq1e2(b *testing.B) {
-	benchmarkSetSeq(b, 1e2)
-}
-
 func BenchmarkSetSeq1e3(b *testing.B) {
 	benchmarkSetSeq(b, 1e3)
 }
@@ -285,10 +281,6 @@ func benchmarkSetSeq(b *testing.B, n int) {
 		}
 	}
 	b.StopTimer()
-}
-
-func BenchmarkGetSeq1e2(b *testing.B) {
-	benchmarkGetSeq(b, 1e2)
 }
 
 func BenchmarkGetSeq1e3(b *testing.B) {
@@ -320,10 +312,6 @@ func benchmarkGetSeq(b *testing.B, n int) {
 		}
 	}
 	b.StopTimer()
-}
-
-func BenchmarkSetRnd1e2(b *testing.B) {
-	benchmarkSetRnd(b, 1e2)
 }
 
 func BenchmarkSetRnd1e3(b *testing.B) {
@@ -359,10 +347,6 @@ func benchmarkSetRnd(b *testing.B, n int) {
 		}
 	}
 	b.StopTimer()
-}
-
-func BenchmarkGetRnd1e2(b *testing.B) {
-	benchmarkGetRnd(b, 1e2)
 }
 
 func BenchmarkGetRnd1e3(b *testing.B) {
@@ -402,8 +386,8 @@ func benchmarkGetRnd(b *testing.B, n int) {
 }
 
 func TestSetGet2(t *testing.T) {
-	const N = 50000
-	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x314259} {
+	const N = 60000
+	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x333333, 0xcccccc, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
@@ -548,8 +532,8 @@ func TestDelete0(t *testing.T) {
 }
 
 func TestDelete1(t *testing.T) {
-	const N = 60000
-	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x314259} {
+	const N = 70000
+	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x333333, 0xcccccc, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
@@ -571,10 +555,6 @@ func TestDelete1(t *testing.T) {
 			}
 		}
 	}
-}
-
-func benchmarkDelSeq1e2(b *testing.B) {
-	benchmarkDelSeq(b, 1e2)
 }
 
 func benchmarkDelSeq1e3(b *testing.B) {
@@ -608,10 +588,6 @@ func benchmarkDelSeq(b *testing.B, n int) {
 		}
 	}
 	b.StopTimer()
-}
-
-func BenchmarkDelRnd1e2(b *testing.B) {
-	benchmarkDelRnd(b, 1e2)
 }
 
 func BenchmarkDelRnd1e3(b *testing.B) {
@@ -653,8 +629,8 @@ func benchmarkDelRnd(b *testing.B, n int) {
 }
 
 func TestDelete2(t *testing.T) {
-	const N = 50000
-	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x314259} {
+	const N = 60000
+	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x333333, 0xcccccc, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
@@ -819,10 +795,6 @@ func TestEnumeratorPrev(t *testing.T) {
 	}
 }
 
-func BenchmarkSeekSeq1e2(b *testing.B) {
-	benchmarkSeekSeq(b, 1e2)
-}
-
 func BenchmarkSeekSeq1e3(b *testing.B) {
 	benchmarkSeekSeq(b, 1e3)
 }
@@ -853,10 +825,6 @@ func benchmarkSeekSeq(b *testing.B, n int) {
 		}
 	}
 	b.StopTimer()
-}
-
-func BenchmarkSeekRnd1e2(b *testing.B) {
-	benchmarkSeekRnd(b, 1e2)
 }
 
 func BenchmarkSeekRnd1e3(b *testing.B) {
@@ -892,10 +860,6 @@ func benchmarkSeekRnd(b *testing.B, n int) {
 			r.Seek(v)
 		}
 	}
-}
-
-func BenchmarkNext1e2(b *testing.B) {
-	benchmarkNext(b, 1e2)
 }
 
 func BenchmarkNext1e3(b *testing.B) {
@@ -938,10 +902,6 @@ func benchmarkNext(b *testing.B, n int) {
 			b.Fatal(m)
 		}
 	}
-}
-
-func BenchmarkPrev1e2(b *testing.B) {
-	benchmarkPrev(b, 1e2)
 }
 
 func BenchmarkPrev1e3(b *testing.B) {

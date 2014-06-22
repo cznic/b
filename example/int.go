@@ -2,67 +2,30 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-// Package b implements a B+tree.
-//
-// Changelog
-//
-// 2014-04-18: Added new method Put.
-//
-// Generic types
-//
-// Keys and their associated values are interface{} typed, similar to all of
-// the containers in the standard library.
-//
-// Semiautomatic production of a type specific variant of this package is
-// supported via
-//
-//	$ make generic
-//
-// This command will write to stdout a version of the btree.go file where
-// every key type occurrence is replaced by the word 'key' (written in all
-// CAPS) and every value type occurrence is replaced by the word 'value'
-// (written in all CAPS). Then you have to replace these tokens with your
-// desired type(s), using any technique you're comfortable with.
-//
-// This is how, for example, 'example/int.go' was created:
-//
-//	$ mkdir example
-//	$
-//	$ # Note: the command bellow must be actually written using the words
-//	$ # 'key' and 'value' in all CAPS. The proper form is avoided in this
-//	$ # documentation to not confuse any text replacement mechanism.
-//	$
-//	$ make generic | sed -e 's/key/int/g' -e 's/value/int/g' > example/int.go
-//
-// No other changes to int.go are (strictly) necessary, it compiles just fine.
-//
-// Running the benchmarks for 1000 keys on a machine with Intel X5450 CPU @ 3
-// GHz, Go release 1.3.
-//
-//	$ go test -bench 1e3 example/all_test.go example/int.go
-//	PASS
-//	BenchmarkSetSeq1e3	   10000	    263951 ns/op
-//	BenchmarkGetSeq1e3	   10000	    154410 ns/op
-//	BenchmarkSetRnd1e3	    5000	    392690 ns/op
-//	BenchmarkGetRnd1e3	   10000	    181776 ns/op
-//	BenchmarkDelRnd1e3	    5000	    323795 ns/op
-//	BenchmarkSeekSeq1e3	   10000	    235939 ns/op
-//	BenchmarkSeekRnd1e3	    5000	    299997 ns/op
-//	BenchmarkNext1e3	  200000	     14202 ns/op
-//	BenchmarkPrev1e3	  200000	     13842 ns/op
-//	ok  	command-line-arguments	30.620s
+// Package b implements a int->int B+tree.
 package b
 
 import (
+	"fmt"
 	"io"
 )
 
 //TODO check vs orig initialize/finalize
 
 const (
-	kx = 128 // min 2 //TODO benchmark tune this number if using custom key/value type(s).
-	kd = 64  // min 1 //TODO benchmark tune this number if using custom key/value type(s).
+	kx = 32 //TODO benchmark tune this number if using custom key/value type(s).
+	kd = 32 //TODO benchmark tune this number if using custom key/value type(s).
 )
+
+func init() {
+	if kd < 1 {
+		panic(fmt.Errorf("kd %d: out of range", kd))
+	}
+
+	if kx < 2 {
+		panic(fmt.Errorf("kx %d: out of range", kx))
+	}
+}
 
 type (
 	// Cmp compares a and b. Return value is:
@@ -363,15 +326,15 @@ func (t *Tree) find(q interface{}, k int) (i int, ok bool) {
 	return l, false
 }
 
-//A // First returns the first item of the tree in the key collating order, or
-//A // (zero-value, zero-value) if the tree is empty.
-//A func (t *Tree) First() (k int, v int) {
-//A 	if q := t.first; q != nil {
-//A 		q := &q.d[0]
-//A 		k, v = q.k, q.v
-//A 	}
-//A 	return
-//A }
+// First returns the first item of the tree in the key collating order, or
+// (zero-value, zero-value) if the tree is empty.
+func (t *Tree) First() (k int, v int) {
+	if q := t.first; q != nil {
+		q := &q.d[0]
+		k, v = q.k, q.v
+	}
+	return
+}
 
 // Get returns the value associated with k and true if it exists. Otherwise Get
 // returns (zero-value, false).
@@ -414,15 +377,15 @@ func (t *Tree) insert(q *d, i int, k int, v int) *d {
 	return q
 }
 
-//A // Last returns the last item of the tree in the key collating order, or
-//A // (zero-value, zero-value) if the tree is empty.
-//A func (t *Tree) Last() (k int, v int) {
-//A 	if q := t.last; q != nil {
-//A 		q := &q.d[q.c-1]
-//A 		k, v = q.k, q.v
-//A 	}
-//A 	return
-//A }
+// Last returns the last item of the tree in the key collating order, or
+// (zero-value, zero-value) if the tree is empty.
+func (t *Tree) Last() (k int, v int) {
+	if q := t.last; q != nil {
+		q := &q.d[q.c-1]
+		k, v = q.k, q.v
+	}
+	return
+}
 
 // Len returns the number of items in the tree.
 func (t *Tree) Len() int {
@@ -529,6 +492,11 @@ func (t *Tree) Set(k int, v int) {
 		if ok {
 			switch x := q.(type) {
 			case *x:
+				if x.c > 2*kx {
+					t.splitX(p, &x, pi, &i)
+				}
+				pi = i + 1
+				p = x
 				q = x.x[i+1].ch
 				continue
 			case *d:
@@ -580,6 +548,11 @@ func (t *Tree) Put(k int, upd func(oldV int, exists bool) (newV int, write bool)
 			if ok {
 				switch x := q.(type) {
 				case *x:
+					if x.c > 2*kx {
+						t.splitX(p, &x, pi, &i)
+					}
+					pi = i + 1
+					p = x
 					q = x.x[i+1].ch
 					continue
 				case *d:

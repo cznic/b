@@ -36,33 +36,45 @@
 //
 // No other changes to int.go are (strictly) necessary, it compiles just fine.
 //
-// Running the benchmarks for 1000 keys on a machine with Intel X5450 CPU @ 3
-// GHz, Go release 1.3.
+// Running the benchmarks for 1000 keys on a machine with Intel i5-4670 CPU @
+// 3.4GHz, Go release 1.3.
 //
 //	$ go test -bench 1e3 example/all_test.go example/int.go
 //	PASS
-//	BenchmarkSetSeq1e3	   10000	    263951 ns/op
-//	BenchmarkGetSeq1e3	   10000	    154410 ns/op
-//	BenchmarkSetRnd1e3	    5000	    392690 ns/op
-//	BenchmarkGetRnd1e3	   10000	    181776 ns/op
-//	BenchmarkDelRnd1e3	    5000	    323795 ns/op
-//	BenchmarkSeekSeq1e3	   10000	    235939 ns/op
-//	BenchmarkSeekRnd1e3	    5000	    299997 ns/op
-//	BenchmarkNext1e3	  200000	     14202 ns/op
-//	BenchmarkPrev1e3	  200000	     13842 ns/op
-//	ok  	command-line-arguments	30.620s
+//	BenchmarkSetSeq1e3	   10000	    146740 ns/op
+//	BenchmarkGetSeq1e3	   10000	    108261 ns/op
+//	BenchmarkSetRnd1e3	   10000	    254359 ns/op
+//	BenchmarkGetRnd1e3	   10000	    134621 ns/op
+//	BenchmarkDelRnd1e3	   10000	    211864 ns/op
+//	BenchmarkSeekSeq1e3	   10000	    148628 ns/op
+//	BenchmarkSeekRnd1e3	   10000	    215166 ns/op
+//	BenchmarkNext1e3	  200000	      9211 ns/op
+//	BenchmarkPrev1e3	  200000	      8843 ns/op
+//	ok  	command-line-arguments	25.071s
+//	$
 package b
 
 import (
+	"fmt"
 	"io"
 )
 
 //TODO check vs orig initialize/finalize
 
 const (
-	kx = 128 // min 2 //TODO benchmark tune this number if using custom key/value type(s).
-	kd = 64  // min 1 //TODO benchmark tune this number if using custom key/value type(s).
+	kx = 32 //TODO benchmark tune this number if using custom key/value type(s).
+	kd = 32 //TODO benchmark tune this number if using custom key/value type(s).
 )
+
+func init() {
+	if kd < 1 {
+		panic(fmt.Errorf("kd %d: out of range", kd))
+	}
+
+	if kx < 2 {
+		panic(fmt.Errorf("kx %d: out of range", kx))
+	}
+}
 
 type (
 	// Cmp compares a and b. Return value is:
@@ -529,6 +541,11 @@ func (t *Tree) Set(k interface{} /*K*/, v interface{} /*V*/) {
 		if ok {
 			switch x := q.(type) {
 			case *x:
+				if x.c > 2*kx {
+					t.splitX(p, &x, pi, &i)
+				}
+				pi = i + 1
+				p = x
 				q = x.x[i+1].ch
 				continue
 			case *d:
@@ -580,6 +597,11 @@ func (t *Tree) Put(k interface{} /*K*/, upd func(oldV interface{} /*V*/, exists 
 			if ok {
 				switch x := q.(type) {
 				case *x:
+					if x.c > 2*kx {
+						t.splitX(p, &x, pi, &i)
+					}
+					pi = i + 1
+					p = x
 					q = x.x[i+1].ch
 					continue
 				case *d:
