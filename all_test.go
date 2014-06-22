@@ -218,7 +218,7 @@ func TestSetGet0(t *testing.T) {
 }
 
 func TestSetGet1(t *testing.T) {
-	const N = 60000
+	const N = 100000
 	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x333333, 0xcccccc, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
@@ -386,7 +386,7 @@ func benchmarkGetRnd(b *testing.B, n int) {
 }
 
 func TestSetGet2(t *testing.T) {
-	const N = 60000
+	const N = 80000
 	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x333333, 0xcccccc, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
@@ -532,7 +532,7 @@ func TestDelete0(t *testing.T) {
 }
 
 func TestDelete1(t *testing.T) {
-	const N = 70000
+	const N = 130000
 	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x333333, 0xcccccc, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
@@ -629,7 +629,7 @@ func benchmarkDelRnd(b *testing.B, n int) {
 }
 
 func TestDelete2(t *testing.T) {
-	const N = 60000
+	const N = 100000
 	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x333333, 0xcccccc, 0x314259} {
 		r := TreeNew(cmp)
 		set := r.Set
