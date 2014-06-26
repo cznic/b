@@ -20,7 +20,7 @@
 //
 //	$ make generic
 //
-// This command will write to stdout a version of the bt.go file where
+// This command will write to stdout a version of the btree.go file where
 // every key type occurrence is replaced by the word 'key' (written in all
 // CAPS) and every value type occurrence is replaced by the word 'value'
 // (written in all CAPS). Then you have to replace these tokens with your
