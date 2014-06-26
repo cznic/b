@@ -1,4 +1,6 @@
-.PHONY: all todo clean cover
+.PHONY: all todo clean cover mem
+
+testbin=b.test
 
 all: editor
 	go build
@@ -9,6 +11,11 @@ editor:
 	go fmt
 	go test -i
 	go test
+
+mem:
+	go test -c
+	./$(testbin) -test.bench . -test.memprofile mem.out -test.memprofilerate 1
+	go tool pprof --lines --web --alloc_space $(testbin) mem.out
 
 todo:
 	@grep -n ^[[:space:]]*_[[:space:]]*=[[:space:]][[:alpha:]][[:alnum:]]* *.go || true

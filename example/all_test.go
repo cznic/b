@@ -1,4 +1,4 @@
-// Copyright 2013 The Go Authors. All rights reserved.
+// Copyright 2014 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -131,10 +131,6 @@ func TestSetGet1(t *testing.T) {
 	}
 }
 
-func BenchmarkSetSeq1e2(b *testing.B) {
-	benchmarkSetSeq(b, 1e2)
-}
-
 func BenchmarkSetSeq1e3(b *testing.B) {
 	benchmarkSetSeq(b, 1e3)
 }
@@ -161,12 +157,10 @@ func benchmarkSetSeq(b *testing.B, n int) {
 		for j := 0; j < n; j++ {
 			r.Set(j, j)
 		}
+		b.StopTimer()
+		r.Close()
 	}
 	b.StopTimer()
-}
-
-func BenchmarkGetSeq1e2(b *testing.B) {
-	benchmarkGetSeq(b, 1e2)
 }
 
 func BenchmarkGetSeq1e3(b *testing.B) {
@@ -198,10 +192,7 @@ func benchmarkGetSeq(b *testing.B, n int) {
 		}
 	}
 	b.StopTimer()
-}
-
-func BenchmarkSetRnd1e2(b *testing.B) {
-	benchmarkSetRnd(b, 1e2)
+	r.Close()
 }
 
 func BenchmarkSetRnd1e3(b *testing.B) {
@@ -235,12 +226,10 @@ func benchmarkSetRnd(b *testing.B, n int) {
 		for _, v := range a {
 			r.Set(v, 0)
 		}
+		b.StopTimer()
+		r.Close()
 	}
 	b.StopTimer()
-}
-
-func BenchmarkGetRnd1e2(b *testing.B) {
-	benchmarkGetRnd(b, 1e2)
 }
 
 func BenchmarkGetRnd1e3(b *testing.B) {
@@ -277,6 +266,7 @@ func benchmarkGetRnd(b *testing.B, n int) {
 		}
 	}
 	b.StopTimer()
+	r.Close()
 }
 
 func TestSetGet2(t *testing.T) {
@@ -451,23 +441,19 @@ func TestDelete1(t *testing.T) {
 	}
 }
 
-func benchmarkDelSeq1e2(b *testing.B) {
-	benchmarkDelSeq(b, 1e2)
-}
-
-func benchmarkDelSeq1e3(b *testing.B) {
+func BenchmarkDelSeq1e3(b *testing.B) {
 	benchmarkDelSeq(b, 1e3)
 }
 
-func benchmarkDelSeq1e4(b *testing.B) {
+func BenchmarkDelSeq1e4(b *testing.B) {
 	benchmarkDelSeq(b, 1e4)
 }
 
-func benchmarkDelSeq1e5(b *testing.B) {
+func BenchmarkDelSeq1e5(b *testing.B) {
 	benchmarkDelSeq(b, 1e5)
 }
 
-func benchmarkDelSeq1e6(b *testing.B) {
+func BenchmarkDelSeq1e6(b *testing.B) {
 	benchmarkDelSeq(b, 1e6)
 }
 
@@ -484,12 +470,10 @@ func benchmarkDelSeq(b *testing.B, n int) {
 		for j := 0; j < n; j++ {
 			r.Delete(j)
 		}
+		b.StopTimer()
+		r.Close()
 	}
 	b.StopTimer()
-}
-
-func BenchmarkDelRnd1e2(b *testing.B) {
-	benchmarkDelRnd(b, 1e2)
 }
 
 func BenchmarkDelRnd1e3(b *testing.B) {
@@ -526,6 +510,8 @@ func benchmarkDelRnd(b *testing.B, n int) {
 		for _, v := range a {
 			r.Delete(v)
 		}
+		b.StopTimer()
+		r.Close()
 	}
 	b.StopTimer()
 }
@@ -697,10 +683,6 @@ func TestEnumeratorPrev(t *testing.T) {
 	}
 }
 
-func BenchmarkSeekSeq1e2(b *testing.B) {
-	benchmarkSeekSeq(b, 1e2)
-}
-
 func BenchmarkSeekSeq1e3(b *testing.B) {
 	benchmarkSeekSeq(b, 1e3)
 }
@@ -727,14 +709,13 @@ func benchmarkSeekSeq(b *testing.B, n int) {
 		debug.FreeOSMemory()
 		b.StartTimer()
 		for j := 0; j < n; j++ {
-			t.Seek(j)
+			e, _ := t.Seek(j)
+			e.Close()
 		}
+		b.StopTimer()
+		t.Close()
 	}
 	b.StopTimer()
-}
-
-func BenchmarkSeekRnd1e2(b *testing.B) {
-	benchmarkSeekRnd(b, 1e2)
 }
 
 func BenchmarkSeekRnd1e3(b *testing.B) {
@@ -767,13 +748,12 @@ func benchmarkSeekRnd(b *testing.B, n int) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, v := range a {
-			r.Seek(v)
+			e, _ := r.Seek(v)
+			e.Close()
 		}
 	}
-}
-
-func BenchmarkNext1e2(b *testing.B) {
-	benchmarkNext(b, 1e2)
+	b.StopTimer()
+	r.Close()
 }
 
 func BenchmarkNext1e3(b *testing.B) {
@@ -816,10 +796,8 @@ func benchmarkNext(b *testing.B, n int) {
 			b.Fatal(m)
 		}
 	}
-}
-
-func BenchmarkPrev1e2(b *testing.B) {
-	benchmarkPrev(b, 1e2)
+	b.StopTimer()
+	t.Close()
 }
 
 func BenchmarkPrev1e3(b *testing.B) {
@@ -862,6 +840,8 @@ func benchmarkPrev(b *testing.B, n int) {
 			b.Fatal(m)
 		}
 	}
+	b.StopTimer()
+	t.Close()
 }
 
 func TestSeekFirst0(t *testing.T) {

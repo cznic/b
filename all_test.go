@@ -1,4 +1,4 @@
-// Copyright 2013 The Go Authors. All rights reserved.
+// Copyright 2014 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -279,6 +279,8 @@ func benchmarkSetSeq(b *testing.B, n int) {
 		for j := 0; j < n; j++ {
 			r.Set(j, j)
 		}
+		b.StopTimer()
+		r.Close()
 	}
 	b.StopTimer()
 }
@@ -312,6 +314,7 @@ func benchmarkGetSeq(b *testing.B, n int) {
 		}
 	}
 	b.StopTimer()
+	r.Close()
 }
 
 func BenchmarkSetRnd1e3(b *testing.B) {
@@ -345,6 +348,8 @@ func benchmarkSetRnd(b *testing.B, n int) {
 		for _, v := range a {
 			r.Set(v, 0)
 		}
+		b.StopTimer()
+		r.Close()
 	}
 	b.StopTimer()
 }
@@ -383,6 +388,7 @@ func benchmarkGetRnd(b *testing.B, n int) {
 		}
 	}
 	b.StopTimer()
+	r.Close()
 }
 
 func TestSetGet2(t *testing.T) {
@@ -557,19 +563,19 @@ func TestDelete1(t *testing.T) {
 	}
 }
 
-func benchmarkDelSeq1e3(b *testing.B) {
+func BenchmarkDelSeq1e3(b *testing.B) {
 	benchmarkDelSeq(b, 1e3)
 }
 
-func benchmarkDelSeq1e4(b *testing.B) {
+func BenchmarkDelSeq1e4(b *testing.B) {
 	benchmarkDelSeq(b, 1e4)
 }
 
-func benchmarkDelSeq1e5(b *testing.B) {
+func BenchmarkDelSeq1e5(b *testing.B) {
 	benchmarkDelSeq(b, 1e5)
 }
 
-func benchmarkDelSeq1e6(b *testing.B) {
+func BenchmarkDelSeq1e6(b *testing.B) {
 	benchmarkDelSeq(b, 1e6)
 }
 
@@ -624,6 +630,8 @@ func benchmarkDelRnd(b *testing.B, n int) {
 		for _, v := range a {
 			r.Delete(v)
 		}
+		b.StopTimer()
+		r.Close()
 	}
 	b.StopTimer()
 }
@@ -821,8 +829,11 @@ func benchmarkSeekSeq(b *testing.B, n int) {
 		debug.FreeOSMemory()
 		b.StartTimer()
 		for j := 0; j < n; j++ {
-			t.Seek(j)
+			e, _ := t.Seek(j)
+			e.Close()
 		}
+		b.StopTimer()
+		t.Close()
 	}
 	b.StopTimer()
 }
@@ -857,9 +868,12 @@ func benchmarkSeekRnd(b *testing.B, n int) {
 	b.ResetTimer()
 	for i := 0; i < b.N; i++ {
 		for _, v := range a {
-			r.Seek(v)
+			e, _ := r.Seek(v)
+			e.Close()
 		}
 	}
+	b.StopTimer()
+	r.Close()
 }
 
 func BenchmarkNext1e3(b *testing.B) {
@@ -902,6 +916,8 @@ func benchmarkNext(b *testing.B, n int) {
 			b.Fatal(m)
 		}
 	}
+	b.StopTimer()
+	t.Close()
 }
 
 func BenchmarkPrev1e3(b *testing.B) {

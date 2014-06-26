@@ -1,4 +1,4 @@
-// Copyright 2013 The Go Authors. All rights reserved.
+// Copyright 2014 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
@@ -8,9 +8,8 @@ package b
 import (
 	"fmt"
 	"io"
+	"sync"
 )
-
-//TODO check vs orig initialize/finalize
 
 const (
 	kx = 32 //TODO benchmark tune this number if using custom key/value type(s).
@@ -25,6 +24,29 @@ func init() {
 	if kx < 2 {
 		panic(fmt.Errorf("kx %d: out of range", kx))
 	}
+}
+
+var (
+	btDPool = sync.Pool{New: func() interface{} { return &d{} }}
+	btEPool = btEpool{sync.Pool{New: func() interface{} { return &Enumerator{} }}}
+	btTPool = btTpool{sync.Pool{New: func() interface{} { return &Tree{} }}}
+	btXPool = sync.Pool{New: func() interface{} { return &x{} }}
+)
+
+type btTpool struct{ sync.Pool }
+
+func (p *btTpool) get(cmp Cmp) *Tree {
+	x := p.Get().(*Tree)
+	x.cmp = cmp
+	return x
+}
+
+type btEpool struct{ sync.Pool }
+
+func (p *btEpool) get(err error, hit bool, i int, k int, q *d, t *Tree, ver int64) *Enumerator {
+	x := p.Get().(*Enumerator)
+	x.err, x.hit, x.i, x.k, x.q, x.t, x.ver = err, hit, i, k, q, t, ver
+	return x
 }
 
 type (
@@ -90,9 +112,11 @@ type (
 var ( // R/O zero values
 	zd  d
 	zde de
+	ze  Enumerator
+	zk  int
+	zt  Tree
 	zx  x
 	zxe xe
-	zk  int
 )
 
 func clr(q interface{}) {
@@ -101,16 +125,18 @@ func clr(q interface{}) {
 		for i := 0; i <= x.c; i++ { // Ch0 Sep0 ... Chn-1 Sepn-1 Chn
 			clr(x.x[i].ch)
 		}
-		*x = zx // GC
+		*x = zx
+		btXPool.Put(x)
 	case *d:
-		*x = zd // GC
+		*x = zd
+		btDPool.Put(x)
 	}
 }
 
 // -------------------------------------------------------------------------- x
 
 func newX(ch0 interface{}) *x {
-	r := &x{}
+	r := btXPool.Get().(*x)
 	r.x[0].ch = ch0
 	return r
 }
@@ -172,7 +198,7 @@ func (l *d) mvR(r *d, c int) {
 // TreeNew returns a newly created, empty Tree. The compare function is used
 // for key collation.
 func TreeNew(cmp Cmp) *Tree {
-	return &Tree{cmp: cmp}
+	return btTPool.get(cmp)
 }
 
 // Clear removes all K/V pairs from the tree.
@@ -186,6 +212,14 @@ func (t *Tree) Clear() {
 	t.ver++
 }
 
+// Close performs Clear and recycles t to a pool for possible later reuse. No
+// references to t should exist or such references must not be used afterwards.
+func (t *Tree) Close() {
+	t.Clear()
+	*t = zt
+	btTPool.Put(t)
+}
+
 func (t *Tree) cat(p *x, q, r *d, pi int) {
 	t.ver++
 	q.mvL(r, r.c)
@@ -194,11 +228,21 @@ func (t *Tree) cat(p *x, q, r *d, pi int) {
 	} else {
 		t.last = q
 	}
-	q.n = r.n //TODO recycle r
+	q.n = r.n
+	*r = zd
+	btDPool.Put(r)
 	if p.c > 1 {
 		p.extract(pi)
 		p.x[pi].ch = q
-	} else { //TODO recycle r
+	} else {
+		switch x := t.r.(type) {
+		case *x:
+			*x = zx
+			btXPool.Put(x)
+		case *d:
+			*x = zd
+			btDPool.Put(x)
+		}
 		t.r = q
 	}
 }
@@ -208,7 +252,9 @@ func (t *Tree) catX(p, q, r *x, pi int) {
 	q.x[q.c].k = p.x[pi].k
 	copy(q.x[q.c+1:], r.x[:r.c])
 	q.c += r.c + 1
-	q.x[q.c].ch = r.x[r.c].ch //TODO recycle r
+	q.x[q.c].ch = r.x[r.c].ch
+	*r = zx
+	btXPool.Put(r)
 	if p.c > 1 {
 		p.c--
 		pc := p.c
@@ -222,7 +268,15 @@ func (t *Tree) catX(p, q, r *x, pi int) {
 		return
 	}
 
-	t.r = q //TODO recycle r
+	switch x := t.r.(type) {
+	case *x:
+		*x = zx
+		btXPool.Put(x)
+	case *d:
+		*x = zd
+		btDPool.Put(x)
+	}
+	t.r = q
 }
 
 // Delete removes the k's KV pair, if it exists, in which case Delete returns
@@ -242,7 +296,7 @@ func (t *Tree) Delete(k int) (ok bool) {
 			switch x := q.(type) {
 			case *x:
 				if x.c < kx && q != t.r {
-					t.underflowX(p, &x, pi, &i)
+					x, i = t.underflowX(p, x, pi, i)
 				}
 				pi = i + 1
 				p = x
@@ -267,7 +321,7 @@ func (t *Tree) Delete(k int) (ok bool) {
 		switch x := q.(type) {
 		case *x:
 			if x.c < kx && q != t.r {
-				t.underflowX(p, &x, pi, &i)
+				x, i = t.underflowX(p, x, pi, i)
 			}
 			pi = i
 			p = x
@@ -424,7 +478,7 @@ func (t *Tree) overflow(p *x, q *d, pi, i int, k int, v int) {
 func (t *Tree) Seek(k int) (e *Enumerator, ok bool) {
 	q := t.r
 	if q == nil {
-		e = &Enumerator{nil, false, 0, k, nil, t, t.ver}
+		e = btEPool.get(nil, false, 0, k, nil, t, t.ver)
 		return
 	}
 
@@ -436,16 +490,15 @@ func (t *Tree) Seek(k int) (e *Enumerator, ok bool) {
 				q = x.x[i+1].ch
 				continue
 			case *d:
-				e = &Enumerator{nil, ok, i, k, x, t, t.ver}
-				return
+				return btEPool.get(nil, ok, i, k, x, t, t.ver), true
 			}
 		}
+
 		switch x := q.(type) {
 		case *x:
 			q = x.x[i].ch
 		case *d:
-			e = &Enumerator{nil, ok, i, k, x, t, t.ver}
-			return
+			return btEPool.get(nil, ok, i, k, x, t, t.ver), false
 		}
 	}
 }
@@ -458,7 +511,7 @@ func (t *Tree) SeekFirst() (e *Enumerator, err error) {
 		return nil, io.EOF
 	}
 
-	return &Enumerator{nil, true, 0, q.d[0].k, q, t, t.ver}, nil
+	return btEPool.get(nil, true, 0, q.d[0].k, q, t, t.ver), nil
 }
 
 // SeekLast returns an enumerator positioned on the last KV pair in the tree,
@@ -469,7 +522,7 @@ func (t *Tree) SeekLast() (e *Enumerator, err error) {
 		return nil, io.EOF
 	}
 
-	return &Enumerator{nil, true, q.c - 1, q.d[q.c-1].k, q, t, t.ver}, nil
+	return btEPool.get(nil, true, q.c-1, q.d[q.c-1].k, q, t, t.ver), nil
 }
 
 // Set sets the value associated with k.
@@ -482,7 +535,7 @@ func (t *Tree) Set(k int, v int) {
 	var p *x
 	q := t.r
 	if q == nil {
-		z := t.insert(&d{}, 0, k, v)
+		z := t.insert(btDPool.Get().(*d), 0, k, v)
 		t.r, t.first, t.last = z, z, z
 		return
 	}
@@ -493,7 +546,7 @@ func (t *Tree) Set(k int, v int) {
 			switch x := q.(type) {
 			case *x:
 				if x.c > 2*kx {
-					t.splitX(p, &x, pi, &i)
+					x, i = t.splitX(p, x, pi, i)
 				}
 				pi = i + 1
 				p = x
@@ -508,7 +561,7 @@ func (t *Tree) Set(k int, v int) {
 		switch x := q.(type) {
 		case *x:
 			if x.c > 2*kx {
-				t.splitX(p, &x, pi, &i)
+				x, i = t.splitX(p, x, pi, i)
 			}
 			pi = i
 			p = x
@@ -549,7 +602,7 @@ func (t *Tree) Put(k int, upd func(oldV int, exists bool) (newV int, write bool)
 				switch x := q.(type) {
 				case *x:
 					if x.c > 2*kx {
-						t.splitX(p, &x, pi, &i)
+						x, i = t.splitX(p, x, pi, i)
 					}
 					pi = i + 1
 					p = x
@@ -570,7 +623,7 @@ func (t *Tree) Put(k int, upd func(oldV int, exists bool) (newV int, write bool)
 			switch x := q.(type) {
 			case *x:
 				if x.c > 2*kx {
-					t.splitX(p, &x, pi, &i)
+					x, i = t.splitX(p, x, pi, i)
 				}
 				pi = i
 				p = x
@@ -598,14 +651,14 @@ func (t *Tree) Put(k int, upd func(oldV int, exists bool) (newV int, write bool)
 		return
 	}
 
-	z := t.insert(&d{}, 0, k, newV)
+	z := t.insert(btDPool.Get().(*d), 0, k, newV)
 	t.r, t.first, t.last = z, z, z
 	return
 }
 
 func (t *Tree) split(p *x, q *d, pi, i int, k int, v int) {
 	t.ver++
-	r := &d{}
+	r := btDPool.Get().(*d)
 	if q.n != nil {
 		r.n = q.n
 		r.n.p = r
@@ -638,10 +691,9 @@ func (t *Tree) split(p *x, q *d, pi, i int, k int, v int) {
 	t.insert(q, i, k, v)
 }
 
-func (t *Tree) splitX(p *x, pp **x, pi int, i *int) {
+func (t *Tree) splitX(p *x, q *x, pi int, i int) (*x, int) {
 	t.ver++
-	q := *pp
-	r := &x{}
+	r := btXPool.Get().(*x)
 	copy(r.x[:], q.x[kx+1:])
 	q.c = kx
 	r.c = kx
@@ -654,10 +706,11 @@ func (t *Tree) splitX(p *x, pp **x, pi int, i *int) {
 	for i := range q.x[kx+1:] {
 		q.x[kx+i+1] = zxe
 	}
-	if *i > kx {
-		*pp = r
-		*i -= kx + 1
+	if i > kx {
+		q = r
+		i -= kx + 1
 	}
+	return q, i
 }
 
 func (t *Tree) underflow(p *x, q *d, pi int) {
@@ -678,10 +731,9 @@ func (t *Tree) underflow(p *x, q *d, pi int) {
 	}
 }
 
-func (t *Tree) underflowX(p *x, pp **x, pi int, i *int) {
+func (t *Tree) underflowX(p *x, q *x, pi int, i int) (*x, int) {
 	t.ver++
 	var l, r *x
-	q := *pp
 
 	if pi >= 0 {
 		if pi > 0 {
@@ -698,10 +750,10 @@ func (t *Tree) underflowX(p *x, pp **x, pi int, i *int) {
 		q.x[0].ch = l.x[l.c].ch
 		q.x[0].k = p.x[pi-1].k
 		q.c++
-		*i++
+		i++
 		l.c--
 		p.x[pi-1].k = l.x[l.c].k
-		return
+		return q, i
 	}
 
 	if r != nil && r.c > kx {
@@ -715,20 +767,28 @@ func (t *Tree) underflowX(p *x, pp **x, pi int, i *int) {
 		r.x[rc].ch = r.x[rc+1].ch
 		r.x[rc].k = zk
 		r.x[rc+1].ch = nil
-		return
+		return q, i
 	}
 
 	if l != nil {
-		*i += l.c + 1
+		i += l.c + 1
 		t.catX(p, l, q, pi-1)
-		*pp = l
-		return
+		q = l
+		return q, i
 	}
 
 	t.catX(p, q, r, pi)
+	return q, i
 }
 
 // ----------------------------------------------------------------- Enumerator
+
+// Close recycles e to a pool for possible later reuse. No references to e
+// should exist or such references must not be used afterwards.
+func (e *Enumerator) Close() {
+	*e = ze
+	btEPool.Put(e)
+}
 
 // Next returns the currently enumerated item, if it exists and moves to the
 // next item in the key collation order. If there is no item to return, err ==
@@ -747,6 +807,7 @@ func (e *Enumerator) Next() (k int, v int, err error) {
 		}
 
 		*e = *f
+		f.Close()
 	}
 	if e.q == nil {
 		e.err, err = io.EOF, io.EOF
@@ -800,6 +861,7 @@ func (e *Enumerator) Prev() (k int, v int, err error) {
 		}
 
 		*e = *f
+		f.Close()
 	}
 	if e.q == nil {
 		e.err, err = io.EOF, io.EOF

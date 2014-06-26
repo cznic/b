@@ -1,4 +1,6 @@
-.PHONY: all todo clean cover generic
+.PHONY: all todo clean cover generic mem nuke
+
+testbin=b.test
 
 all: editor
 	go build
@@ -10,12 +12,6 @@ editor:
 	go fmt
 	go test -i
 	go test
-
-todo:
-	@grep -n ^[[:space:]]*_[[:space:]]*=[[:space:]][[:alpha:]][[:alnum:]]* *.go || true
-	@grep -n TODO *.go || true
-	@grep -n BUG *.go || true
-	@grep -n println *.go || true
 
 clean:
 	@go clean
@@ -31,3 +27,17 @@ generic:
 	@# Intended use is to replace all textual occurrences of KEY or VALUE in
 	@# the output with your desired types.
 	@sed -e 's|interface{}[^{]*/\*K\*/|KEY|g' -e 's|interface{}[^{]*/\*V\*/|VALUE|g' btree.go
+
+mem:
+	go test -c
+	./$(testbin) -test.bench . -test.memprofile mem.out -test.memprofilerate 1
+	go tool pprof --lines --web --alloc_space $(testbin) mem.out
+
+nuke: clean
+	rm -f *.test *.out
+
+todo:
+	@grep -n ^[[:space:]]*_[[:space:]]*=[[:space:]][[:alpha:]][[:alnum:]]* *.go || true
+	@grep -n TODO *.go || true
+	@grep -n BUG *.go || true
+	@grep -n println *.go || true
