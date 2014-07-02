@@ -531,6 +531,7 @@ func (t *Tree) Set(k int, v int) {
 	//defer func() {
 	//	dbg("--- POST\n%s\n====\n", t.dump())
 	//}()
+
 	pi := -1
 	var p *x
 	q := t.r
@@ -595,65 +596,65 @@ func (t *Tree) Put(k int, upd func(oldV int, exists bool) (newV int, write bool)
 	var p *x
 	q := t.r
 	var newV int
-	if q != nil {
-		for {
-			i, ok := t.find(q, k)
-			if ok {
-				switch x := q.(type) {
-				case *x:
-					if x.c > 2*kx {
-						x, i = t.splitX(p, x, pi, i)
-					}
-					pi = i + 1
-					p = x
-					q = x.x[i+1].ch
-					continue
-				case *d:
-					oldV = x.d[i].v
-					newV, written = upd(oldV, true)
-					if !written {
-						return
-					}
+	if q == nil {
+		// new KV pair in empty tree
+		newV, written = upd(newV, false)
+		if !written {
+			return
+		}
 
-					x.d[i].v = newV
-				}
-				return
-			}
+		z := t.insert(btDPool.Get().(*d), 0, k, newV)
+		t.r, t.first, t.last = z, z, z
+		return
+	}
 
+	for {
+		i, ok := t.find(q, k)
+		if ok {
 			switch x := q.(type) {
 			case *x:
 				if x.c > 2*kx {
 					x, i = t.splitX(p, x, pi, i)
 				}
-				pi = i
+				pi = i + 1
 				p = x
-				q = x.x[i].ch
-			case *d: // new KV pair
-				newV, written = upd(newV, false)
+				q = x.x[i+1].ch
+				continue
+			case *d:
+				oldV = x.d[i].v
+				newV, written = upd(oldV, true)
 				if !written {
 					return
 				}
 
-				switch {
-				case x.c < 2*kd:
-					t.insert(x, i, k, newV)
-				default:
-					t.overflow(p, x, pi, i, k, newV)
-				}
+				x.d[i].v = newV
+			}
+			return
+		}
+
+		switch x := q.(type) {
+		case *x:
+			if x.c > 2*kx {
+				x, i = t.splitX(p, x, pi, i)
+			}
+			pi = i
+			p = x
+			q = x.x[i].ch
+		case *d: // new KV pair
+			newV, written = upd(newV, false)
+			if !written {
 				return
 			}
+
+			switch {
+			case x.c < 2*kd:
+				t.insert(x, i, k, newV)
+			default:
+				t.overflow(p, x, pi, i, k, newV)
+			}
+			return
 		}
 	}
-
-	// new KV pair in empty tree
-	newV, written = upd(newV, false)
-	if !written {
-		return
-	}
-
-	z := t.insert(btDPool.Get().(*d), 0, k, newV)
-	t.r, t.first, t.last = z, z, z
-	return
 }
 
 func (t *Tree) split(p *x, q *d, pi, i int, k int, v int) {
@@ -699,18 +700,36 @@ func (t *Tree) splitX(p *x, q *x, pi int, i int) (*x, int) {
 	r.c = kx
 	if pi >= 0 {
 		p.insert(pi, q.x[kx].k, r)
-	} else {
-		t.r = newX(q).insert(0, q.x[kx].k, r)
+		q.x[kx].k = zk
+		for i := range q.x[kx+1:] {
+			q.x[kx+i+1] = zxe
+		}
+
+		switch {
+		case i < kx:
+			return q, i
+		case i == kx:
+			return p, pi
+		default: // i > kx
+			return r, i - kx - 1
+		}
 	}
+
+	nr := newX(q).insert(0, q.x[kx].k, r)
+	t.r = nr
 	q.x[kx].k = zk
 	for i := range q.x[kx+1:] {
 		q.x[kx+i+1] = zxe
 	}
-	if i > kx {
-		q = r
-		i -= kx + 1
+
+	switch {
+	case i < kx:
+		return q, i
+	case i == kx:
+		return nr, 0
+	default: // i > kx
+		return r, i - kx - 1
 	}
-	return q, i
 }
 
 func (t *Tree) underflow(p *x, q *d, pi int) {

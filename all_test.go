@@ -96,7 +96,7 @@ func (t *Tree) dump() string {
 					n = i + 1
 				}
 			}
-			f.Format("%sX#%d n %d:%d {", pref, h, x.c, n)
+			f.Format("%sX#%d(%p) n %d:%d {", pref, h, x, x.c, n)
 			a := []interface{}{}
 			for i, v := range x.x[:n] {
 				a = append(a, v.ch)
@@ -117,7 +117,7 @@ func (t *Tree) dump() string {
 					n = i + 1
 				}
 			}
-			f.Format("%sD#%d P#%d N#%d n %d:%d {", pref, h, handle(x.p), handle(x.n), x.c, n)
+			f.Format("%sD#%d(%p) P#%d N#%d n %d:%d {", pref, h, x, handle(x.p), handle(x.n), x.c, n)
 			for i, v := range x.d[:n] {
 				if i != 0 {
 					f.Format(" ")
@@ -218,7 +218,7 @@ func TestSetGet0(t *testing.T) {
 }
 
 func TestSetGet1(t *testing.T) {
-	const N = 100000
+	const N = 40000
 	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x333333, 0xcccccc, 0x314159} {
 		r := TreeNew(cmp)
 		set := r.Set
@@ -250,7 +250,42 @@ func TestSetGet1(t *testing.T) {
 			}
 
 		}
+
+		for _, k := range a {
+			r.Set(k, (k^x)+42)
+		}
+
+		for i, k := range a {
+			v, ok := r.Get(k)
+			if !ok {
+				t.Fatal(i, k, v, ok)
+			}
+
+			if g, e := v.(int), k^x+42; g != e {
+				t.Fatal(i, g, e)
+			}
+
+			k |= 1
+			_, ok = r.Get(k)
+			if ok {
+				t.Fatal(i, k)
+			}
+		}
 	}
+}
+
+func TestPrealloc(*testing.T) {
+	const n = 2e6
+	rng := rng()
+	a := make([]int, n)
+	for i := range a {
+		a[i] = rng.Next()
+	}
+	r := TreeNew(cmp)
+	for _, v := range a {
+		r.Set(v, 0)
+	}
+	r.Close()
 }
 
 func BenchmarkSetSeq1e3(b *testing.B) {
@@ -392,12 +427,12 @@ func benchmarkGetRnd(b *testing.B, n int) {
 }
 
 func TestSetGet2(t *testing.T) {
-	const N = 80000
+	const N = 40000
 	for _, x := range []int{0, -1, 0x555555, 0xaaaaaa, 0x333333, 0xcccccc, 0x314159} {
+		rng := rng()
 		r := TreeNew(cmp)
 		set := r.Set
 		a := make([]int, N)
-		rng := rng()
 		for i := range a {
 			a[i] = (rng.Next() ^ x) << 1
 		}
@@ -415,6 +450,27 @@ func TestSetGet2(t *testing.T) {
 			}
 
 			if g, e := v.(int), k^x; g != e {
+				t.Fatal(i, g, e)
+			}
+
+			k |= 1
+			_, ok = r.Get(k)
+			if ok {
+				t.Fatal(i, k)
+			}
+		}
+
+		for _, k := range a {
+			r.Set(k, (k^x)+42)
+		}
+
+		for i, k := range a {
+			v, ok := r.Get(k)
+			if !ok {
+				t.Fatal(i, k, v, ok)
+			}
+
+			if g, e := v.(int), k^x+42; g != e {
 				t.Fatal(i, g, e)
 			}
 
