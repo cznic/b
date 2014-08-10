@@ -639,7 +639,7 @@ func (t *Tree) Set(k interface{} /*K*/, v interface{} /*V*/) {
 //
 // 	tree.Set(k, v) conceptually equals
 //
-// 	tree.Put(k, func(k, v []byte){ return v, true }([]byte, bool))
+// 	tree.Put(k, func(_ interface{}, _ bool){ return v, true }) (interface{}, bool)
 //
 // modulo the differing return values.
 func (t *Tree) Put(k interface{} /*K*/, upd func(oldV interface{} /*V*/, exists bool) (newV interface{} /*V*/, write bool)) (oldV interface{} /*V*/, written bool) {
