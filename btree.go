@@ -637,9 +637,9 @@ func (t *Tree) Set(k interface{} /*K*/, v interface{} /*V*/) {
 // (whatever, false) if it decides not to create or not to update the value of
 // the KV pair.
 //
-// 	tree.Set(k, v) conceptually equals
+// 	tree.Set(k, v) call conceptually equals calling
 //
-// 	tree.Put(k, func(_ interface{}, _ bool){ return v, true }) (interface{}, bool)
+// 	tree.Put(k, func(interface{} /*K*/, bool){ return v, true })
 //
 // modulo the differing return values.
 func (t *Tree) Put(k interface{} /*K*/, upd func(oldV interface{} /*V*/, exists bool) (newV interface{} /*V*/, write bool)) (oldV interface{} /*V*/, written bool) {
