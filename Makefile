@@ -1,3 +1,7 @@
+# Copyright 2014 The b Authors. All rights reserved.
+# Use of this source code is governed by a BSD-style
+# license that can be found in the LICENSE file.
+
 .PHONY: all todo clean cover generic mem nuke
 
 testbin=b.test
@@ -5,6 +9,7 @@ testbin=b.test
 all: editor
 	go build
 	go vet
+	golint .
 	go install
 	make todo
 
