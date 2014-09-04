@@ -30,7 +30,7 @@
 //
 //	$ mkdir example
 //	$
-//	$ # Note: the command bellow must be actually written using the words
+//	$ # Note: the command below must be actually written using the words
 //	$ # 'key' and 'value' in all CAPS. The proper form is avoided in this
 //	$ # documentation to not confuse any text replacement mechanism.
 //	$
