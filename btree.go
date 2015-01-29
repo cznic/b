@@ -285,17 +285,18 @@ func (t *Tree) cat(p *x, q, r *d, pi int) {
 	if p.c > 1 {
 		p.extract(pi)
 		p.x[pi].ch = q
-	} else {
-		switch x := t.r.(type) {
-		case *x:
-			*x = zx
-			btXPool.Put(x)
-		case *d:
-			*x = zd
-			btDPool.Put(x)
-		}
-		t.r = q
+		return
 	}
+
+	switch x := t.r.(type) {
+	case *x:
+		*x = zx
+		btXPool.Put(x)
+	case *d:
+		*x = zd
+		btDPool.Put(x)
+	}
+	t.r = q
 }
 
 func (t *Tree) catX(p, q, r *x, pi int) {
@@ -513,10 +514,11 @@ func (t *Tree) overflow(p *x, q *d, pi, i int, k interface{} /*K*/, v interface{
 			q.mvR(r, 1)
 			t.insert(q, i, k, v)
 			p.x[pi].k = r.d[0].k
-		} else {
-			t.insert(r, 0, k, v)
-			p.x[pi].k = k
+			return
 		}
+
+		t.insert(r, 0, k, v)
+		p.x[pi].k = k
 		return
 	}
 
@@ -790,15 +792,22 @@ func (t *Tree) underflow(p *x, q *d, pi int) {
 	if l != nil && l.c+q.c >= 2*kd {
 		l.mvR(q, 1)
 		p.x[pi-1].k = q.d[0].k
-	} else if r != nil && q.c+r.c >= 2*kd {
+		return
+	}
+
+	if r != nil && q.c+r.c >= 2*kd {
 		q.mvL(r, 1)
 		p.x[pi].k = r.d[0].k
 		r.d[r.c] = zde // GC
-	} else if l != nil {
-		t.cat(p, l, q, pi-1)
-	} else {
-		t.cat(p, q, r, pi)
+		return
 	}
+
+	if l != nil {
+		t.cat(p, l, q, pi-1)
+		return
+	}
+
+	t.cat(p, q, r, pi)
 }
 
 func (t *Tree) underflowX(p *x, q *x, pi int, i int) (*x, int) {

@@ -2,7 +2,7 @@
 # Use of this source code is governed by a BSD-style
 # license that can be found in the LICENSE file.
 
-.PHONY: all todo clean cover generic mem nuke
+.PHONY: all todo clean cover generic mem nuke cpu
 
 testbin=b.test
 
@@ -14,16 +14,21 @@ all: editor
 	make todo
 
 editor:
-	go fmt
+	gofmt -l -s -w .
 	go test -i
 	go test
 
 clean:
 	@go clean
-	rm -f *~
+	rm -f *~ *.out $(testbin)
 
 cover:
 	t=$(shell tempfile) ; go test -coverprofile $$t && go tool cover -html $$t && unlink $$t
+
+cpu:
+	go test -c
+	./$(testbin) -test.cpuprofile cpu.out
+	go tool pprof --lines $(testbin) cpu.out
 
 generic:
 	@# writes to stdout a version where the type of key is KEY and the type
