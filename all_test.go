@@ -1298,3 +1298,35 @@ func TestPut(t *testing.T) {
 		}
 	}
 }
+
+func TestSeek(t *testing.T) {
+	const N = 1 << 13
+	tr := TreeNew(cmp)
+	for i := 0; i < N; i++ {
+		k := 2*i + 1
+		tr.Set(k, nil)
+	}
+	for i := 0; i < N; i++ {
+		k := 2 * i
+		e, ok := tr.Seek(k)
+		if ok {
+			t.Fatal(k)
+		}
+
+		for j := i; j < N; j++ {
+			k2, _, err := e.Next()
+			if err != nil {
+				t.Fatal(k, err)
+			}
+
+			if g, e := k2, 2*j+1; g != e {
+				t.Fatal(j, g, e)
+			}
+		}
+
+		_, _, err := e.Next()
+		if err != io.EOF {
+			t.Fatalf("expected io.EOF, got %v", err)
+		}
+	}
+}

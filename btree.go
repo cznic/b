@@ -473,9 +473,9 @@ func (t *Tree) overflow(p *x, q *d, pi, i int, k interface{} /*K*/, v interface{
 	t.split(p, q, pi, i, k, v)
 }
 
-// Seek returns an Enumerator positioned on a an item such that k >= item's
-// key. ok reports if k == item.key The Enumerator's position is possibly
-// after the last item in the tree.
+// Seek returns an Enumerator positioned on an item such that k >= item's key.
+// ok reports if k == item.key The Enumerator's position is possibly after the
+// last item in the tree.
 func (t *Tree) Seek(k interface{} /*K*/) (e *Enumerator, ok bool) {
 	q := t.r
 	if q == nil {
