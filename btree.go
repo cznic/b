@@ -450,15 +450,10 @@ func (t *Tree) overflow(p *x, q *d, pi, i int, k interface{} /*K*/, v interface{
 	t.ver++
 	l, r := p.siblings(pi)
 
-	if l != nil && l.c < 2*kd {
-		if i > 0 {
-			l.mvL(q, 1)
-			t.insert(q, i-1, k, v)
-			p.x[pi-1].k = q.d[0].k
-			return
-		}
-
-		t.insert(l, l.c, k, v)
+	if l != nil && l.c < 2*kd && i != 0 {
+		l.mvL(q, 1)
+		t.insert(q, i-1, k, v)
+		p.x[pi-1].k = q.d[0].k
 		return
 	}
 
