@@ -1330,3 +1330,20 @@ func TestSeek(t *testing.T) {
 		}
 	}
 }
+
+func TestPR4(t *testing.T) {
+	tr := TreeNew(cmp)
+	for i := 0; i < 2*kd+1; i++ {
+		k := 1000 * i
+		tr.Set(k, nil)
+	}
+	tr.Delete(1000 * kd)
+	for i := 0; i < kd; i++ {
+		tr.Set(1000*(kd+1)-1-i, nil)
+	}
+	k := 1000*(kd+1) - 1 - kd
+	tr.Set(k, nil)
+	if _, ok := tr.Get(k); !ok {
+		t.Fatalf("key lost: %v", k)
+	}
+}
