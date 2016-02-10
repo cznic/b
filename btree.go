@@ -76,7 +76,7 @@ type (
 	//
 	// However, once an Enumerator returns io.EOF to signal "no more
 	// items", it does no more attempt to "resync" on tree mutation(s).  In
-	// other words, io.EOF from an Enumaretor is "sticky" (idempotent).
+	// other words, io.EOF from an Enumerator is "sticky" (idempotent).
 	Enumerator struct {
 		err error
 		hit bool
