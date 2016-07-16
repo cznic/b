@@ -36,12 +36,16 @@ func dbg(s string, va ...interface{}) {
 	fmt.Println()
 }
 
-func TODO(...interface{}) string {
+func TODO(...interface{}) string { //TODOOK
 	_, fn, fl, _ := runtime.Caller(1)
-	return fmt.Sprintf("TODO: %s:%d:\n", path.Base(fn), fl)
+	return fmt.Sprintf("TODO: %s:%d:\n", path.Base(fn), fl) //TODOOK
 }
 
 func use(...interface{}) {}
+
+func init() {
+	use(caller, dbg, TODO, isNil, (*Tree).dump) //TODOOK
+}
 
 // ============================================================================
 
