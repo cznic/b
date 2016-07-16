@@ -6,7 +6,7 @@
 //
 // Changelog
 //
-// 2016-07-16: Update becnhmark results to newer Go version. Add a note on
+// 2016-07-16: Update benchmark results to newer Go version. Add a note on
 // concurrency.
 //
 // 2014-06-26: Lower GC presure by recycling things.
