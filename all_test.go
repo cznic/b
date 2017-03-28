@@ -800,13 +800,13 @@ func TestEnumeratorPrev(t *testing.T) {
 		hit  bool
 		keys []int
 	}{
-		{5, false, []int{10}},
+		{5, false, []int{}},
 		{10, true, []int{10}},
-		{15, false, []int{20, 10}},
+		{15, false, []int{10}},
 		{20, true, []int{20, 10}},
-		{25, false, []int{30, 20, 10}},
+		{25, false, []int{20, 10}},
 		{30, true, []int{30, 20, 10}},
-		{35, false, []int{}},
+		{35, false, []int{30, 20, 10}},
 	}
 
 	for i, test := range table {
@@ -860,6 +860,51 @@ func TestEnumeratorPrev(t *testing.T) {
 			}
 		}
 
+	}
+}
+
+func TestEnumeratorPrevSanity(t *testing.T) {
+	// seeking within 3 keys: 10, 20, 30
+	table := []struct {
+		k      int
+		hit    bool
+		kOut   interface{}
+		vOut   interface{}
+		errOut error
+	}{
+		{10, true, 10, 100, nil},
+		{20, true, 20, 200, nil},
+		{30, true, 30, 300, nil},
+		{35, false, 30, 300, nil},
+		{25, false, 20, 200, nil},
+		{15, false, 10, 100, nil},
+		{5, false, nil, nil, io.EOF},
+	}
+
+	for i, test := range table {
+		r := TreeNew(cmp)
+
+		r.Set(10, 100)
+		r.Set(20, 200)
+		r.Set(30, 300)
+
+		en, hit := r.Seek(test.k)
+
+		if g, e := hit, test.hit; g != e {
+			t.Fatal(i, g, e)
+		}
+
+		k, v, err := en.Prev()
+
+		if g, e := err, test.errOut; g != e {
+			t.Fatal(i, g, e)
+		}
+		if g, e := k, test.kOut; g != e {
+			t.Fatal(i, g, e)
+		}
+		if g, e := v, test.vOut; g != e {
+			t.Fatal(i, g, e)
+		}
 	}
 }
 
