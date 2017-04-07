@@ -76,7 +76,7 @@ type (
 	//
 	// However, once an Enumerator returns io.EOF to signal "no more
 	// items", it does no more attempt to "resync" on tree mutation(s).  In
-	// other words, io.EOF from an Enumaretor is "sticky" (idempotent).
+	// other words, io.EOF from an Enumerator is "sticky" (idempotent).
 	Enumerator struct {
 		err error
 		hit bool
@@ -450,7 +450,7 @@ func (t *Tree) overflow(p *x, q *d, pi, i int, k int, v int) {
 	t.ver++
 	l, r := p.siblings(pi)
 
-	if l != nil && l.c < 2*kd {
+	if l != nil && l.c < 2*kd && i != 0 {
 		l.mvL(q, 1)
 		t.insert(q, i-1, k, v)
 		p.x[pi-1].k = q.d[0].k
@@ -473,9 +473,9 @@ func (t *Tree) overflow(p *x, q *d, pi, i int, k int, v int) {
 	t.split(p, q, pi, i, k, v)
 }
 
-// Seek returns an Enumerator positioned on a an item such that k >= item's
-// key. ok reports if k == item.key The Enumerator's position is possibly
-// after the last item in the tree.
+// Seek returns an Enumerator positioned on an item such that k >= item's key.
+// ok reports if k == item.key The Enumerator's position is possibly after the
+// last item in the tree.
 func (t *Tree) Seek(k int) (e *Enumerator, ok bool) {
 	q := t.r
 	if q == nil {
@@ -826,13 +826,7 @@ func (e *Enumerator) Next() (k int, v int, err error) {
 	}
 
 	if e.ver != e.t.ver {
-		f, hit := e.t.Seek(e.k)
-		if !e.hit && hit {
-			if err = f.next(); err != nil {
-				return
-			}
-		}
-
+		f, _ := e.t.Seek(e.k)
 		*e = *f
 		f.Close()
 	}
@@ -849,7 +843,7 @@ func (e *Enumerator) Next() (k int, v int, err error) {
 
 	i := e.q.d[e.i]
 	k, v = i.k, i.v
-	e.k, e.hit = k, false
+	e.k, e.hit = k, true
 	e.next()
 	return
 }
@@ -880,13 +874,7 @@ func (e *Enumerator) Prev() (k int, v int, err error) {
 	}
 
 	if e.ver != e.t.ver {
-		f, hit := e.t.Seek(e.k)
-		if !e.hit && hit {
-			if err = f.prev(); err != nil {
-				return
-			}
-		}
-
+		f, _ := e.t.Seek(e.k)
 		*e = *f
 		f.Close()
 	}
@@ -895,15 +883,22 @@ func (e *Enumerator) Prev() (k int, v int, err error) {
 		return
 	}
 
+	if !e.hit {
+		// move to previous because Seek overshoots if there's no hit
+		if err = e.prev(); err != nil {
+			return
+		}
+	}
+
 	if e.i >= e.q.c {
-		if err = e.next(); err != nil {
+		if err = e.prev(); err != nil {
 			return
 		}
 	}
 
 	i := e.q.d[e.i]
 	k, v = i.k, i.v
-	e.k, e.hit = k, false
+	e.k, e.hit = k, true
 	e.prev()
 	return
 }
