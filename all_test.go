@@ -292,6 +292,71 @@ func TestPrealloc(*testing.T) {
 	r.Close()
 }
 
+func TestSplitXOnEdge(t *testing.T) {
+	// verify how splitX works when splitting X for k pointing directly at split edge
+	tr := TreeNew(cmp)
+
+	// one index page with 2*kx+2 elements (last has .k=∞  so x.c=2*kx+1)
+	// which will splitX on next Set
+	for i := 0; i <= (2*kx + 1) * 2*kd; i++ {
+		// odd keys are left to be filled in second test
+		tr.Set(2*i, 2*i)
+	}
+
+	x0 := tr.r.(*x)
+	if x0.c != 2*kx+1 {
+		t.Fatalf("x0.c: %v  ; expected %v", x0.c, 2*kx+1)
+	}
+
+	// set element with k directly at x0[kx].k
+	kedge := 2 * (kx + 1) * (2*kd)
+	if x0.x[kx].k != kedge {
+		t.Fatalf("edge key before splitX: %v  ; expected %v", x0.x[kx].k, kedge)
+	}
+	tr.Set(kedge, 777)
+
+	// if splitX was wrong kedge:777 would land into wrong place with Get failing
+	v, ok := tr.Get(kedge)
+	if !(v==777 && ok) {
+		t.Fatalf("after splitX: Get(%v) -> %v, %v  ; expected 777, true", v, ok)
+	}
+
+	// now check the same when splitted X has parent
+	xr := tr.r.(*x)
+	if xr.c != 1 { // second x comes with k=∞ with .c index
+		t.Fatalf("after splitX: xr.c: %v  ; expected 1", xr.c)
+	}
+
+	if xr.x[0].ch != x0 {
+		t.Fatal("xr[0].ch is not x0")
+	}
+
+	for i := 0; i <= (2*kx) * kd; i++ {
+		tr.Set(2*i+1, 2*i+1)
+	}
+
+	// check x0 is in pre-splitX condition and still at the right place
+	if x0.c != 2*kx+1 {
+		t.Fatalf("x0.c: %v  ; expected %v", x0.c, 2*kx+1)
+	}
+	if xr.x[0].ch != x0 {
+		t.Fatal("xr[0].ch is not x0")
+	}
+
+	// set element with k directly at x0[kx].k
+	kedge = (kx + 1) * (2*kd)
+	if x0.x[kx].k != kedge {
+		t.Fatalf("edge key before splitX: %v  ; expected %v", x0.x[kx].k, kedge)
+	}
+	tr.Set(kedge, 888)
+
+	// if splitX was wrong kedge:888 would land into wrong place
+	v, ok = tr.Get(kedge)
+	if !(v==888 && ok) {
+		t.Fatalf("after splitX: Get(%v) -> %v, %v  ; expected 888, true", v, ok)
+	}
+}
+
 func BenchmarkSetSeq1e3(b *testing.B) {
 	benchmarkSetSeq(b, 1e3)
 }
