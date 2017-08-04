@@ -319,7 +319,7 @@ func TestSplitXOnEdge(t *testing.T) {
 	// if splitX was wrong kedge:777 would land into wrong place with Get failing
 	v, ok := tr.Get(kedge)
 	if !(v == 777 && ok) {
-		t.Fatalf("after splitX: Get(%v) -> %v, %v  ; expected 777, true", v, ok)
+		t.Fatalf("after splitX: Get(%v) -> %v, %v  ; expected 777, true", kedge, v, ok)
 	}
 
 	// now check the same when splitted X has parent
@@ -354,7 +354,7 @@ func TestSplitXOnEdge(t *testing.T) {
 	// if splitX was wrong kedge:888 would land into wrong place
 	v, ok = tr.Get(kedge)
 	if !(v == 888 && ok) {
-		t.Fatalf("after splitX: Get(%v) -> %v, %v  ; expected 888, true", v, ok)
+		t.Fatalf("after splitX: Get(%v) -> %v, %v  ; expected 888, true", kedge, v, ok)
 	}
 }
 
