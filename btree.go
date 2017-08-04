@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"io"
 	"sync"
+	"unsafe"
 )
 
 const (
@@ -26,17 +27,38 @@ func init() {
 }
 
 var (
-	btDPool = sync.Pool{New: func() interface{} { return &d{} }}
-	btEPool = btEpool{sync.Pool{New: func() interface{} { return &Enumerator{} }}}
-	btTPool = btTpool{sync.Pool{New: func() interface{} { return &Tree{} }}}
-	btXPool = sync.Pool{New: func() interface{} { return &x{} }}
+	btDPool_ = sync.Pool{New: func() interface{} { return &d{} }}
+	btEPool  = btEpool{sync.Pool{New: func() interface{} { return &Enumerator{} }}}
+	btTPool  = btTpool{sync.Pool{New: func() interface{} { return &Tree{} }}}
+	btXPool_ = sync.Pool{New: func() interface{} { return &x{} }}
+
+	dNodeSize = int(unsafe.Sizeof(d{}))
+	xNodeSize = int(unsafe.Sizeof(x{}))
+	treeSize  = int(unsafe.Sizeof(Tree{}))
 )
+
+type countedPool struct {
+	pool  *sync.Pool
+	count int
+}
+
+func (p *countedPool) get() interface{} {
+	p.count++
+	return p.pool.Get()
+}
+
+func (p *countedPool) put(x interface{}) {
+	p.count--
+	p.pool.Put(x)
+}
 
 type btTpool struct{ sync.Pool }
 
 func (p *btTpool) get(cmp Cmp) *Tree {
 	x := p.Get().(*Tree)
 	x.cmp = cmp
+	x.xpool.pool = &btXPool_
+	x.dpool.pool = &btDPool_
 	return x
 }
 
@@ -95,6 +117,8 @@ type (
 		last  *d
 		r     interface{}
 		ver   int64
+		xpool countedPool
+		dpool countedPool
 	}
 
 	xe struct { // x element
@@ -118,24 +142,24 @@ var ( // R/O zero values
 	zxe xe
 )
 
-func clr(q interface{}) {
+func (t *Tree) clr(q interface{}) {
 	switch x := q.(type) {
 	case *x:
 		for i := 0; i <= x.c; i++ { // Ch0 Sep0 ... Chn-1 Sepn-1 Chn
-			clr(x.x[i].ch)
+			t.clr(x.x[i].ch)
 		}
 		*x = zx
-		btXPool.Put(x)
+		t.xpool.put(x)
 	case *d:
 		*x = zd
-		btDPool.Put(x)
+		t.dpool.put(x)
 	}
 }
 
 // -------------------------------------------------------------------------- x
 
-func newX(ch0 interface{}) *x {
-	r := btXPool.Get().(*x)
+func (t *Tree) newX(ch0 interface{}) *x {
+	r := t.xpool.get().(*x)
 	r.x[0].ch = ch0
 	return r
 }
@@ -206,7 +230,7 @@ func (t *Tree) Clear() {
 		return
 	}
 
-	clr(t.r)
+	t.clr(t.r)
 	t.c, t.first, t.last, t.r = 0, nil, nil, nil
 	t.ver++
 }
@@ -219,6 +243,11 @@ func (t *Tree) Close() {
 	btTPool.Put(t)
 }
 
+// ByteSize returns the aggregate number of bytes used by this Tree.
+func (t *Tree) ByteSize() int {
+	return treeSize + t.dpool.count*dNodeSize + t.xpool.count*xNodeSize
+}
+
 func (t *Tree) cat(p *x, q, r *d, pi int) {
 	t.ver++
 	q.mvL(r, r.c)
@@ -229,7 +258,7 @@ func (t *Tree) cat(p *x, q, r *d, pi int) {
 	}
 	q.n = r.n
 	*r = zd
-	btDPool.Put(r)
+	t.dpool.put(r)
 	if p.c > 1 {
 		p.extract(pi)
 		p.x[pi].ch = q
@@ -239,10 +268,10 @@ func (t *Tree) cat(p *x, q, r *d, pi int) {
 	switch x := t.r.(type) {
 	case *x:
 		*x = zx
-		btXPool.Put(x)
+		t.xpool.put(x)
 	case *d:
 		*x = zd
-		btDPool.Put(x)
+		t.dpool.put(x)
 	}
 	t.r = q
 }
@@ -254,7 +283,7 @@ func (t *Tree) catX(p, q, r *x, pi int) {
 	q.c += r.c + 1
 	q.x[q.c].ch = r.x[r.c].ch
 	*r = zx
-	btXPool.Put(r)
+	t.xpool.put(r)
 	if p.c > 1 {
 		p.c--
 		pc := p.c
@@ -271,10 +300,10 @@ func (t *Tree) catX(p, q, r *x, pi int) {
 	switch x := t.r.(type) {
 	case *x:
 		*x = zx
-		btXPool.Put(x)
+		t.xpool.put(x)
 	case *d:
 		*x = zd
-		btDPool.Put(x)
+		t.dpool.put(x)
 	}
 	t.r = q
 }
@@ -537,7 +566,7 @@ func (t *Tree) Set(k interface{} /*K*/, v interface{} /*V*/) {
 	var p *x
 	q := t.r
 	if q == nil {
-		z := t.insert(btDPool.Get().(*d), 0, k, v)
+		z := t.insert(t.dpool.get().(*d), 0, k, v)
 		t.r, t.first, t.last = z, z, z
 		return
 	}
@@ -605,7 +634,7 @@ func (t *Tree) Put(k interface{} /*K*/, upd func(oldV interface{} /*V*/, exists 
 			return
 		}
 
-		z := t.insert(btDPool.Get().(*d), 0, k, newV)
+		z := t.insert(t.dpool.get().(*d), 0, k, newV)
 		t.r, t.first, t.last = z, z, z
 		return
 	}
@@ -662,7 +691,7 @@ func (t *Tree) Put(k interface{} /*K*/, upd func(oldV interface{} /*V*/, exists 
 
 func (t *Tree) split(p *x, q *d, pi, i int, k interface{} /*K*/, v interface{} /*V*/) {
 	t.ver++
-	r := btDPool.Get().(*d)
+	r := t.dpool.get().(*d)
 	if q.n != nil {
 		r.n = q.n
 		r.n.p = r
@@ -686,7 +715,7 @@ func (t *Tree) split(p *x, q *d, pi, i int, k interface{} /*K*/, v interface{} /
 	if pi >= 0 {
 		p.insert(pi, r.d[0].k, r)
 	} else {
-		t.r = newX(q).insert(0, r.d[0].k, r)
+		t.r = t.newX(q).insert(0, r.d[0].k, r)
 	}
 	if done {
 		return
@@ -697,14 +726,14 @@ func (t *Tree) split(p *x, q *d, pi, i int, k interface{} /*K*/, v interface{} /
 
 func (t *Tree) splitX(p *x, q *x, pi int, i int) (*x, int) {
 	t.ver++
-	r := btXPool.Get().(*x)
+	r := t.xpool.get().(*x)
 	copy(r.x[:], q.x[kx+1:])
 	q.c = kx
 	r.c = kx
 	if pi >= 0 {
 		p.insert(pi, q.x[kx].k, r)
 	} else {
-		t.r = newX(q).insert(0, q.x[kx].k, r)
+		t.r = t.newX(q).insert(0, q.x[kx].k, r)
 	}
 
 	q.x[kx].k = zk
