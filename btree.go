@@ -27,8 +27,10 @@ func init() {
 }
 
 var (
-	btEPool = btEpool{sync.Pool{New: func() interface{} { return &Enumerator{} }}}
-	btTPool = btTpool{sync.Pool{New: func() interface{} { return &Tree{} }}}
+	btDPool_ = sync.Pool{New: func() interface{} { return &d{} }}
+	btEPool  = btEpool{sync.Pool{New: func() interface{} { return &Enumerator{} }}}
+	btTPool  = btTpool{sync.Pool{New: func() interface{} { return &Tree{} }}}
+	btXPool_ = sync.Pool{New: func() interface{} { return &x{} }}
 
 	dNodeSize = int(unsafe.Sizeof(d{}))
 	xNodeSize = int(unsafe.Sizeof(x{}))
@@ -36,27 +38,28 @@ var (
 )
 
 type countedPool struct {
-	alloc func() interface{}
+	pool  *sync.Pool
 	count int
 }
 
 func (p *countedPool) get() interface{} {
 	p.count++
-	return p.alloc()
+	return p.pool.Get()
 }
 
 func (p *countedPool) put(x interface{}) {
 	p.count--
+	p.pool.Put(x)
 }
 
 type btTpool struct{ sync.Pool }
 
 func (p *btTpool) get(cmp Cmp) *Tree {
-	t := p.Get().(*Tree)
-	t.cmp = cmp
-	t.xpool.alloc = func() interface{} { return &x{} }
-	t.dpool.alloc = func() interface{} { return &d{} }
-	return t
+	x := p.Get().(*Tree)
+	x.cmp = cmp
+	x.xpool.pool = &btXPool_
+	x.dpool.pool = &btDPool_
+	return x
 }
 
 type btEpool struct{ sync.Pool }
