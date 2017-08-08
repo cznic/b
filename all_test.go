@@ -14,6 +14,7 @@ import (
 	"runtime/debug"
 	"strings"
 	"testing"
+	"unsafe"
 
 	"github.com/cznic/mathutil"
 	"github.com/cznic/strutil"
@@ -298,7 +299,7 @@ func TestSplitXOnEdge(t *testing.T) {
 
 	// one index page with 2*kx+2 elements (last has .k=∞  so x.c=2*kx+1)
 	// which will splitX on next Set
-	for i := 0; i <= (2*kx + 1) * 2*kd; i++ {
+	for i := 0; i <= (2*kx+1)*2*kd; i++ {
 		// odd keys are left to be filled in second test
 		tr.Set(2*i, 2*i)
 	}
@@ -309,7 +310,7 @@ func TestSplitXOnEdge(t *testing.T) {
 	}
 
 	// set element with k directly at x0[kx].k
-	kedge := 2 * (kx + 1) * (2*kd)
+	kedge := 2 * (kx + 1) * (2 * kd)
 	if x0.x[kx].k != kedge {
 		t.Fatalf("edge key before splitX: %v  ; expected %v", x0.x[kx].k, kedge)
 	}
@@ -317,8 +318,8 @@ func TestSplitXOnEdge(t *testing.T) {
 
 	// if splitX was wrong kedge:777 would land into wrong place with Get failing
 	v, ok := tr.Get(kedge)
-	if !(v==777 && ok) {
-		t.Fatalf("after splitX: Get(%v) -> %v, %v  ; expected 777, true", v, ok)
+	if !(v == 777 && ok) {
+		t.Fatalf("after splitX: Get(%v) -> %v, %v  ; expected 777, true", kedge, v, ok)
 	}
 
 	// now check the same when splitted X has parent
@@ -331,7 +332,7 @@ func TestSplitXOnEdge(t *testing.T) {
 		t.Fatal("xr[0].ch is not x0")
 	}
 
-	for i := 0; i <= (2*kx) * kd; i++ {
+	for i := 0; i <= (2*kx)*kd; i++ {
 		tr.Set(2*i+1, 2*i+1)
 	}
 
@@ -344,7 +345,7 @@ func TestSplitXOnEdge(t *testing.T) {
 	}
 
 	// set element with k directly at x0[kx].k
-	kedge = (kx + 1) * (2*kd)
+	kedge = (kx + 1) * (2 * kd)
 	if x0.x[kx].k != kedge {
 		t.Fatalf("edge key before splitX: %v  ; expected %v", x0.x[kx].k, kedge)
 	}
@@ -352,8 +353,8 @@ func TestSplitXOnEdge(t *testing.T) {
 
 	// if splitX was wrong kedge:888 would land into wrong place
 	v, ok = tr.Get(kedge)
-	if !(v==888 && ok) {
-		t.Fatalf("after splitX: Get(%v) -> %v, %v  ; expected 888, true", v, ok)
+	if !(v == 888 && ok) {
+		t.Fatalf("after splitX: Get(%v) -> %v, %v  ; expected 888, true", kedge, v, ok)
 	}
 }
 
@@ -1460,4 +1461,17 @@ func TestPR4(t *testing.T) {
 	if _, ok := tr.Get(k); !ok {
 		t.Fatalf("key lost: %v", k)
 	}
+}
+
+func TestSize0(t *testing.T) {
+	tr := TreeNew(cmp)
+	empty := int(unsafe.Sizeof(*tr))
+	fmt.Println(tr.ByteSize())
+	if tr.ByteSize() != empty {
+		t.Error("Empty tree size:", tr.ByteSize())
+	}
+	tr.Set(1, nil)
+	fmt.Println(tr.ByteSize())
+	tr.Delete(1)
+	fmt.Println(tr.ByteSize())
 }
