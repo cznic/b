@@ -301,7 +301,6 @@ func (t *Tree) Delete(k interface{} /*K*/) (ok bool) {
 				pi = i + 1
 				p = x
 				q = x.x[pi].ch
-				ok = false
 				continue
 			case *d:
 				t.extract(x, i)
