@@ -46,12 +46,14 @@
 // tokens with your desired type(s), using any technique you're comfortable
 // with.
 //
-// This is how, for example, 'example/int.go' was created:
+// This is how, for example, 'example/int.go' and 'example/kuint64vstring.go'
+// were created:
 //
 //	$ mkdir example
 //	$ make generic | sed -e 's/KEY/int/g' -e 's/VALUE/int/g' > example/int.go
+//  $ make generic | sed -e 's/KEY/uint64/g' -e 's/VALUE/string/g' > example/kuint64vstring.g
 //
-// No other changes to int.go are necessary, it compiles just fine.
+// No other changes are necessary, they compile just fine.
 //
 // Running the benchmarks for 1000 keys on a machine with Intel i5-4670 CPU @
 // 3.4GHz, Go 1.7rc1.
@@ -70,4 +72,26 @@
 //	PASS
 //	ok  	command-line-arguments	42.531s
 //	$
+//
+// Running the benchmarks
+// 31.4 GiB, Intel® Core™ i5-6500 CPU @ 3.20GHz × 4, Debian GNU/Linux 8 (jessie)
+// Linux 3.16.0-4-amd64 #1 SMP Debian 3.16.51-3 (2017-12-13) x86_64 GNU/Linux
+//
+//	$ go test -bench 1e3 example/all_kuint64vstring_test.go example/kuint64vstring.go
+//	goos: linux
+//	goarch: amd64
+//	BenchmarkSetSeq1e3-4    	   10000	    131588 ns/op
+//	BenchmarkGetSeq1e3-4    	   20000	     75770 ns/op
+//	BenchmarkSetRnd1e3-4    	   10000	    196124 ns/op
+//	BenchmarkGetRnd1e3-4    	   10000	    108582 ns/op
+//	BenchmarkDelSeq1e3-4    	   10000	    116113 ns/op
+//	BenchmarkDelRnd1e3-4    	   10000	    173698 ns/op
+//	BenchmarkSeekSeq1e3-4   	   10000	    121599 ns/op
+//	BenchmarkSeekRnd1e3-4   	   10000	    136558 ns/op
+//	BenchmarkNext1e3-4      	  200000	      6759 ns/op
+//	BenchmarkPrev1e3-4      	  100000	     10765 ns/op
+//	PASS
+//	ok  	command-line-arguments	34.347s
+//	$
+//
 package b
